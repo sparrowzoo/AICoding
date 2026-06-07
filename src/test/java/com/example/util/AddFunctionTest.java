@@ -19,4 +19,9 @@ class AddFunctionTest {
     void testAddZero() {
         assertEquals(3, AddFunction.add(3, 0));
     }
+
+    @Test
+    void testAddOverflow() {
+        assertEquals(Integer.MIN_VALUE, AddFunction.add(Integer.MAX_VALUE, 1));
+    }
 }
