@@ -1,0 +1,3 @@
+- [Spec split pattern](spec-split-pattern.md) — basic-math 项目按 capability 拆分 specs 的惯例
+- [Plan Superpowers format](plan-superpowers-format.md) — plan.md 独立于 OpenSpec tasks.md 的完整 Superpowers Plan 格式要求
+- [Design sections for simple features](design-sections-for-simple-features.md) — 简单功能 design.md 必备 6 个章节
