@@ -1,27 +1,27 @@
 package com.example.util;
 
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class AddFunctionTest {
 
     @Test
-    void testAddPositive() {
-        assertEquals(5, AddFunction.add(2, 3));
+    void shouldReturn2WhenAdd1And1() {
+        assertEquals(2, AddFunction.add(1, 1));
     }
 
     @Test
-    void testAddNegative() {
-        assertEquals(-5, AddFunction.add(-2, -3));
+    void shouldReturn5WhenAdd0And5() {
+        assertEquals(5, AddFunction.add(0, 5));
     }
 
     @Test
-    void testAddZero() {
-        assertEquals(3, AddFunction.add(3, 0));
+    void shouldReturn2WhenAddMinus3And5() {
+        assertEquals(2, AddFunction.add(-3, 5));
     }
 
     @Test
-    void testAddOverflow() {
+    void shouldHandleMaxValueOverflow() {
         assertEquals(Integer.MIN_VALUE, AddFunction.add(Integer.MAX_VALUE, 1));
     }
 }
