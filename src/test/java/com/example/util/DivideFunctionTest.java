@@ -35,4 +35,10 @@ class DivideFunctionTest {
     void shouldThrowArithmeticExceptionWhenMinValueDivideByMinus1() {
         assertThrows(ArithmeticException.class, () -> DivideFunction.divide(Integer.MIN_VALUE, -1));
     }
+
+    @Test
+    void shouldReturn10WhenMinus10DivideByMinus1() {
+        assertEquals(10, DivideFunction.divide(-10, -1));
+    }
+
 }
