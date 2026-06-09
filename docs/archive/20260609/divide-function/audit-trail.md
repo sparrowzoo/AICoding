@@ -26,3 +26,24 @@
 - plan.md 审查: PASS — 2个 Task 均可执行，无占位符，粒度合理
 
 **质量门禁**: doc-reviewer 审查通过 | 无需人工介入
+
+## 2026-06-09 — E2E 验收 & 归档
+
+**产出内容**: divide-function E2E 验收报告
+
+| 文件 | 路径 | 说明 |
+|------|------|------|
+| E2E 验收报告 | `docs/archive/20260609/divide-function/e2e-report.md` | 5/5 规则覆盖，8 个 Scenario 全部覆盖全通过 |
+
+**E2E 裁定**: ✅ 通过 — 5 条业务规则全部忠实履行，无未通过项，无待确认项
+
+**归档操作**:
+- 设计文档 → `docs/archive/20260609/divide-function/design.md`
+- 需求提案 → `docs/archive/20260609/divide-function/proposal.md`
+- 实施计划 → `docs/archive/20260609/divide-function/plan.md`
+- 规格说明 → `docs/archive/20260609/divide-function/specs/spec.md`
+- 审计跟踪 → `docs/archive/20260609/divide-function/audit-trail.md`
+- E2E 报告 → `docs/archive/20260609/divide-function/e2e-report.md`
+- 源目录 `docs/divide-function/` 已清理
+
+**测试结果**: Tests run: 7, Failures: 0, Errors: 0 | BUILD SUCCESS
