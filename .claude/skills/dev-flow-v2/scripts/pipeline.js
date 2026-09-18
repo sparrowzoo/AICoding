@@ -2,12 +2,16 @@
  * dev-flow-v2 脚本 —— 研发流水线编排
  *
  * args:
- *   feature  : string — kebab-case 功能名
+ *   feature : string — kebab-case 功能名
+ *   mode    : 'design' | 'build' | 'full'（默认 full）
+ *     - design : 仅 TRD，返回 riskLevel/taskCount 供编排器做审核闸门
+ *     - build  : 编码 → 运行时验证 → E2E → 归档（假定 TRD 已完成）
+ *     - full   : design + build 连跑，无人工闸门（低风险全自动）
  *
  * 返回：
- *   { status: 'ok' | 'failed', summary: string }
- *   - ok    : 全流程完成
- *   - failed: 不可恢复错误
+ *   { status: 'ok' | 'failed', summary, ... }
+ *   - design 额外：riskLevel / taskCount / needsHuman
+ *   - build  额外：e2eRootCause / needsHuman
  */
 
 export const meta = {
@@ -22,11 +26,13 @@ export const meta = {
 }
 
 const feature = args.feature
+const mode = args.mode || 'full'
 
 // ========== Schema ==========
 // schema 相当于 Tool function calling 的 parameters 定义：
 // 告诉 LLM "你必须按这个 JSON 格式返回"，缺 required 字段自动重试补齐。
 // agent() 返回解析后的对象，直接 result.field 访问，无需 parse。
+// reviewFeedback / issues 字段把上一轮审查意见传回重试，避免盲重跑。
 
 const TRD_SCHEMA = {
   type: 'object',
@@ -36,8 +42,9 @@ const TRD_SCHEMA = {
     taskCount: { type: 'number' },
     docReviewPassed: { type: 'boolean' },
     needsHuman: { type: 'boolean' },
+    reviewFeedback: { type: 'string' },
   },
-  required: ['success', 'riskLevel', 'taskCount', 'docReviewPassed', 'needsHuman'],
+  required: ['success', 'riskLevel', 'taskCount', 'docReviewPassed', 'needsHuman', 'reviewFeedback'],
 }
 
 const CODE_SCHEMA = {
@@ -49,8 +56,9 @@ const CODE_SCHEMA = {
     testFailed: { type: 'number' },
     codeReviewPassed: { type: 'boolean' },
     needsHuman: { type: 'boolean' },
+    reviewFeedback: { type: 'string' },
   },
-  required: ['success', 'testTotal', 'testPassed', 'codeReviewPassed', 'needsHuman'],
+  required: ['success', 'testTotal', 'testPassed', 'codeReviewPassed', 'needsHuman', 'reviewFeedback'],
 }
 
 const VERIFY_SCHEMA = {
@@ -69,8 +77,10 @@ const E2E_SCHEMA = {
     passed: { type: 'number' },
     failed: { type: 'number' },
     needsHuman: { type: 'boolean' },
+    issues: { type: 'string' },
+    rootCause: { type: 'string', enum: ['code', 'design', 'requirement'] },
   },
-  required: ['success', 'totalRules', 'passed', 'failed', 'needsHuman'],
+  required: ['success', 'totalRules', 'passed', 'failed', 'needsHuman', 'issues'],
 }
 
 
@@ -81,7 +91,7 @@ async function runTRD() {
   log(`📐 TRD 产出: ${feature}`)
 
   let result = await agent(
-    `为 "${feature}" 产出技术设计文档。使用 Skill({skill: 'trd-writer'})。按 OpenSpec + Superpowers 规范产出 design.md + specs/ + plan.md。内部完成 doc-reviewer (opus) 审查。完成后追加 audit-trail 到 ./docs/${feature}/audit-trail.md。返回结构化结果。`,
+    `为 "${feature}" 产出技术设计文档。使用 Skill({skill: 'trd-writer'})。按 OpenSpec + Superpowers 规范产出 design.md + specs/ + plan.md。内部完成 doc-reviewer (opus) 审查。完成后追加 audit-trail 到 ./docs/${feature}/audit-trail.md。返回结构化结果，其中 reviewFeedback 填写 doc-reviewer 的审查意见（通过则填空字符串）。`,
     { phase: 'TRD', schema: TRD_SCHEMA }
   )
 
@@ -90,11 +100,12 @@ async function runTRD() {
     retries++
     log(`🔁 TRD 审查重试 ${retries}/2`)
     result = await agent(
-      `TRD 审查未通过，根据意见修复 openspec/changes/${feature}/ 下的文档。重试 ${retries}/2。`,
+      `TRD 审查未通过（第 ${retries} 次）。上一轮审查意见：\n${result.reviewFeedback || '（未捕获到意见，请对照 doc-reviewer 审查维度自查 design.md/specs/plan.md）'}\n\n根据上述意见修复 openspec/changes/${feature}/ 下的文档，重新执行 doc-reviewer 审查。reviewFeedback 返回本轮审查意见。`,
       { phase: 'TRD', schema: TRD_SCHEMA }
     )
   }
 
+  if (result && !result.docReviewPassed) result.needsHuman = true
   return result
 }
 
@@ -106,7 +117,7 @@ async function runCode() {
   log(`🔨 编码: ${feature}`)
 
   let result = await agent(
-    `为 "${feature}" TDD 编码。使用 Skill({skill: 'coder'})。coder 内部：读取 plan.md → 逐 Task 编码 → spec 审查 → simplify → code-reviewer。追加 audit-trail。返回结构化结果。`,
+    `为 "${feature}" TDD 编码。使用 Skill({skill: 'coder'})。coder 内部：读取 plan.md → 逐 Task 编码 → spec 审查 → simplify → code-reviewer。追加 audit-trail。返回结构化结果，其中 reviewFeedback 填写 code-reviewer 的审查意见（通过则填空字符串）。`,
     { phase: '编码', schema: CODE_SCHEMA }
   )
 
@@ -115,11 +126,12 @@ async function runCode() {
     retries++
     log(`🔁 代码审查重试 ${retries}/2`)
     result = await agent(
-      `代码审查未通过，使用 Skill({skill: 'coder'}) 修复。失败测试 ${result.testFailed || 0}。重试 ${retries}/2。`,
+      `代码审查未通过（第 ${retries} 次）。上一轮审查意见：\n${result.reviewFeedback || `（未捕获到意见，已知失败测试 ${result.testFailed || 0} 个）`}\n\n使用 Skill({skill: 'coder'}) 根据意见修复，重新执行 code-reviewer 审查。reviewFeedback 返回本轮审查意见。`,
       { phase: '编码', schema: CODE_SCHEMA }
     )
   }
 
+  if (result && !result.codeReviewPassed) result.needsHuman = true
   return result
 }
 
@@ -144,20 +156,10 @@ async function runVerify() {
 async function runE2E() {
   log(`✅ E2E: ${feature}`)
 
-  let result = await agent(
-    `为 "${feature}" E2E 验收。使用 Skill({skill: 'e2e-validator'})。追加 audit-trail。返回结构化结果。`,
+  const result = await agent(
+    `为 "${feature}" E2E 验收。使用 Skill({skill: 'e2e-validator'})。追加 audit-trail。返回结构化结果：success 表示全部业务规则通过；若未通过，issues 填写未通过规则的证据链摘要，rootCause 按未通过规则的性质判定为 code（实现错误）/ design（设计缺陷）/ requirement（需求理解偏差）。`,
     { phase: '验证', schema: E2E_SCHEMA }
   )
-
-  let retries = 0
-  while (result && !result.success && retries < 2) {
-    retries++
-    log(`🔁 E2E 重试 ${retries}/2`)
-    result = await agent(
-      `E2E 未通过，使用 Skill({skill: 'e2e-validator'}) 修复。重试 ${retries}/2。`,
-      { phase: '验证', schema: E2E_SCHEMA }
-    )
-  }
 
   return result
 }
@@ -170,65 +172,103 @@ async function runArchive() {
   log(`📦 归档: ${feature}`)
 
   const result = await agent(
-    `为 "${feature}" 归档。1. Skill({skill: 'openspec-archive-change'}) 2. 创建 docs/archive/ 目录并复制文件 3. rm -rf docs/${feature}/ 4. 追加 audit-trail 最终条目。返回 { archived: boolean }。`,
-    { phase: '归档', schema: { type: 'object', properties: { archived: { type: 'boolean' } }, required: ['archived'] } }
+    `为 "${feature}" 归档。归档前先确认代码已提交：运行 \`git status --porcelain\`，若有未提交变更先 git commit（无法提交则中断并报告）。然后：1. Skill({skill: 'opsx:archive'}) 2. 创建 docs/archive/ 目录并复制文件 3. rm -rf docs/${feature}/ 4. 追加 audit-trail 最终条目。返回结构化结果。`,
+    { phase: '归档', schema: { type: 'object', properties: { archived: { type: 'boolean' }, commitVerified: { type: 'boolean' } }, required: ['archived', 'commitVerified'] } }
   )
 
   return result
 }
 
 
-// ========== 主流程 ==========
-// 串行多阶段 pipeline：TRD → 编码 → 验证 → E2E → 归档
-// 每个阶段抛异常 → 后续自动跳过，最终结果为 null
-// 每阶段返回值自动传给下一阶段
+// ========== mode 执行 ==========
 
-async function main() {
-  log(`🚀 dev-flow-v2 | ${feature}`)
+function humanResult(stage) {
+  return {
+    status: 'failed',
+    summary: `${feature} 需人工介入（${stage}）⚠️`,
+    needsHuman: true,
+  }
+}
 
-  const [ok] = await pipeline(
-    [{ feature }],
+async function runDesign() {
+  log(`📐 design 模式: ${feature}`)
 
-    // ── Stage 1: TRD ──
-    async (item) => {
-      const trd = await runTRD()
-      if (!trd?.success) throw new Error('TRD_FAILED')
-      return trd
-    },
-
-    // ── Stage 2: 编码 ──
-    async (trd, item) => {
-      log(`📊 TRD: risk=${trd.riskLevel}, tasks=${trd.taskCount}`)
-      const code = await runCode()
-      if (!code?.success) throw new Error('CODE_FAILED')
-      return code
-    },
-
-    // ── Stage 3: 运行时验证 ──
-    async (code, item) => {
-      const verify = await runVerify()
-      if (verify?.verdict === 'FAIL') throw new Error('VERIFY_FAILED')
-      return verify
-    },
-
-    // ── Stage 4: E2E ──
-    async (verify, item) => {
-      const e2e = await runE2E()
-      if (!e2e?.success) throw new Error('E2E_FAILED')
-      return e2e
-    },
-
-    // ── Stage 5: 归档 ──
-    async (e2e, item) => {
-      await runArchive()
-      return true
-    },
-  )
+  const trd = await runTRD()
+  if (trd?.needsHuman) return { ...humanResult('TRD'), riskLevel: trd.riskLevel, taskCount: trd.taskCount }
+  if (!trd?.success) {
+    return {
+      status: 'failed',
+      summary: `${feature} TRD 失败，详见日志`,
+      needsHuman: false,
+      riskLevel: trd?.riskLevel,
+      taskCount: trd?.taskCount,
+    }
+  }
 
   return {
-    status: ok ? 'ok' : 'failed',
-    summary: ok ? `${feature} 全流程完成 ✅` : `${feature} 流程中断，详见日志`,
+    status: 'ok',
+    summary: `${feature} TRD 完成 ✅`,
+    needsHuman: false,
+    riskLevel: trd.riskLevel,
+    taskCount: trd.taskCount,
   }
+}
+
+async function runBuild() {
+  log(`🔨 build 模式: ${feature}`)
+
+  // ── 编码 ──
+  const code = await runCode()
+  if (code?.needsHuman) return { ...humanResult('编码'), e2eRootCause: null }
+  if (!code?.success) {
+    return { status: 'failed', summary: `${feature} 编码失败，详见日志`, needsHuman: false, e2eRootCause: null }
+  }
+
+  // ── 运行时验证 ──
+  const verify = await runVerify()
+  if (verify?.verdict === 'BLOCKED') return { ...humanResult('验证'), e2eRootCause: null }
+  if (verify?.verdict === 'FAIL') {
+    return { status: 'failed', summary: `${feature} 运行时验证失败，详见日志`, needsHuman: false, e2eRootCause: null }
+  }
+
+  // ── E2E 验收 ──
+  const e2e = await runE2E()
+  if (e2e?.needsHuman) return { ...humanResult('E2E'), e2eRootCause: null }
+  if (!e2e?.success) {
+    return {
+      status: 'failed',
+      summary: `${feature} E2E 失败（根因: ${e2e.rootCause || '未判定'}）`,
+      needsHuman: false,
+      e2eRootCause: e2e.rootCause || null,
+    }
+  }
+
+  // ── 归档 ──
+  await runArchive()
+
+  return {
+    status: 'ok',
+    summary: `${feature} 构建完成 ✅`,
+    needsHuman: false,
+    e2eRootCause: null,
+  }
+}
+
+async function runFull() {
+  const design = await runDesign()
+  if (design.status !== 'ok') return design
+  return runBuild()
+}
+
+
+// ========== 入口 ==========
+
+async function main() {
+  log(`🚀 dev-flow-v2 | ${feature} | mode=${mode}`)
+
+  if (mode === 'design') return runDesign()
+  if (mode === 'build') return runBuild()
+  return runFull()
 }
 
 return main()

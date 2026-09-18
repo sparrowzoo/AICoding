@@ -38,10 +38,10 @@ docs/superpowers/plans/
 
 ## 工作流程
 
-### Step 1：加载 openspec-continue-change
+### Step 1：加载 opsx:continue
 
 ```
-Skill: openspec-continue-change
+Skill: opsx:continue
 ```
 
 ### Step 2：补齐 proposal.md（如缺失）

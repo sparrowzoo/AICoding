@@ -38,10 +38,10 @@ openspec/changes/{feature}/
 ### Step 2：OpenSpec 脚手架
 
 ```
-Skill: openspec-new-change
+Skill: opsx:new
 ```
 
-遵循 openspec-new-change 流程创建 change。
+遵循 opsx:new 流程创建 change。
 
 ### Step 3：获取模板并生成 proposal.md
 
