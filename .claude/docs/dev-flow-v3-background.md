@@ -2,6 +2,8 @@
 
 > 记录「为什么要有 V3」以及设计决策。配套实现见 `.claude/skills/dev-flow-v3/SKILL.md`。
 
+> **更新（2026-09-19）**：v2 的 `pipeline.js` 现已可通过 `scripts/runner.js` 独立跑通（agent 用 mock，验证编排逻辑）。**v2/v3 是同一套流程的两种实现机制（pipeline vs native），不是「取代」或「更先进」的关系。** 本文的历史判断仍成立——mock 只替换 agent 返回值，不派真实子 agent。
+
 ---
 
 ## 一、为什么要有 V3
@@ -17,7 +19,7 @@
 
 - 想把编排写成确定性 JS 脚本（`pipeline.js`），用 `Workflow({scriptPath})` 执行。
 - **问题**：`pipeline.js` 依赖一个「Workflow 脚本运行时」（注入 `agent()`/`pipeline()`/`parallel()`/`log()`/`phase()`/`args` 这些全局），**这个运行时从未被实现**。
-- **后果**：脚本是死代码，`Workflow({scriptPath})` 无法执行，实际还是编排器手动跑。
+- **后果**：`Workflow({scriptPath})` 无法执行，脚本当时跑不起来，实际靠编排器手动跑。
 
 ### 结论
 

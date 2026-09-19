@@ -1,6 +1,6 @@
 ---
 name: dev-flow-v3
-description: 研发工作流 v3——原生 SKILL.md 编排，不依赖 Workflow 脚本运行时。需求确认→规模判定→TRD→审核闸门→编码→验证→E2E→归档。
+description: 研发工作流 v3（native 机制）——原生 SKILL.md 编排，用 Skill/Agent/AskUserQuestion 驱动。需求确认→规模判定→TRD→审核闸门→编码→验证→E2E→归档。与 v2 是同一套流程的两种实现机制。
 triggers:
   - dev-flow-v3
   - 研发工作流v3
@@ -23,7 +23,7 @@ allowed-tools:
 
 原生编排版。**不用 `Workflow` 工具 / `pipeline.js`**，直接用原生 `Skill` / `Agent` / `AskUserQuestion` 工具驱动。
 
-> 为什么是 v3 而不是 v2：v2 的 `pipeline.js` 依赖一个从未实现的「Workflow 脚本运行时」，脚本跑不起来。v3 把同样的编排逻辑用原生工具落地。背景见 `.claude/docs/dev-flow-v3-background.md`。
+> **两种实现机制之一（native）**：v3 用宿主原生 `Skill`/`Agent` 驱动，[dev-flow-v2](../dev-flow-v2/SKILL.md) 用 pipeline 脚本驱动。同一套研发流程，按流程性质选用：非确定 → v3，明确 → v2。背景见 `.claude/docs/dev-flow-v3-background.md`。
 
 编排器只做决策，质量门禁在各 Skill 内部自闭环（doc-reviewer / code-reviewer）。启动时用 TodoWrite 建任务列表，并创建 `./docs/{feature}/audit-trail.md` 记录全链路决策证据。
 

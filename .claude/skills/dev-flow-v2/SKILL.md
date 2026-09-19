@@ -1,6 +1,6 @@
 ---
 name: dev-flow-v2
-description: [已被 v3 取代] 研发工作流 v2——脚本驱动（pipeline.js）。因 Workflow 运行时未落地无法执行，请改用 dev-flow-v3。
+description: 研发工作流 v2（pipeline 机制）——脚本驱动编排（pipeline.js + runner.js 独立运行时，agent 用 mock）。与 v3 是同一套流程的两种实现机制，按流程性质选用。
 triggers:
   - dev-flow-v2
   - 研发工作流v2
@@ -20,11 +20,23 @@ allowed-tools:
 
 # 研发工作流 v2
 
-> ⚠️ **本 skill 已被 [dev-flow-v3](../dev-flow-v3/SKILL.md) 取代。** v2 依赖的 `Workflow` 脚本运行时从未实现，`pipeline.js` 无法真机执行。请使用 `/dev-flow-v3`。
+> **两种实现机制之一（pipeline）**：v2 是确定性脚本编排（`pipeline.js` + `runner.js`），[dev-flow-v3](../dev-flow-v3/SKILL.md) 是 native 编排（宿主 `Skill`/`Agent` 驱动）。同一套研发流程，按流程性质选用：明确 → v2，非确定 → v3。
+>
+> v2 原依赖的 `Workflow` 脚本运行时从未实现；现已用 `runner.js` 补齐原语，`pipeline.js` 可独立跑通（agent 用 mock）。
 
 脚本驱动编排器。编排器做决策，脚本执行。质量门禁在各 Skill 内部自闭环，编排器只看结果做闸门决策。
 
 **脚本**: `.claude/skills/dev-flow-v2/scripts/pipeline.js`
+**运行时**: `.claude/skills/dev-flow-v2/scripts/runner.js`
+
+```bash
+# agent 用 mock，验证确定性编排逻辑（闸门/重试/根因回退）
+node scripts/runner.js --feature=<kebab-case> [--mode=design|build|full] [--scenario=pass]
+```
+
+scenario：`pass` / `trd-retry` / `trd-fail` / `trd-human` / `code-retry` / `code-fail` / `verify-fail` / `verify-blocked` / `verify-skip` / `e2e-code` / `e2e-design` / `e2e-requirement` / `e2e-human`。
+
+> 把 mock 换成真实子 agent：把 `runner.js` 的 `agent()` 改为 shell 调 `claude -p`（代价：独立进程、慢、上下文不共享）。
 
 启动时 `TodoWrite` 创建任务列表，并创建 `./docs/{feature}/audit-trail.md` 记录全链路决策证据。
 
@@ -67,7 +79,7 @@ allowed-tools:
 ### Step 1：TRD 产出
 
 ```
-Workflow({ scriptPath: '...pipeline.js', args: { feature, mode: 'design' } })
+node scripts/runner.js --feature=<feature> --mode=design
 ```
 
 返回字段：
@@ -98,7 +110,7 @@ Path A 用户选择：**确认进入编码** / **修改设计**（重跑 Step 1�
 ### Step 3：编码 + 验证 + E2E + 归档
 
 ```
-Workflow({ scriptPath: '...pipeline.js', args: { feature, mode: 'build' } })
+node scripts/runner.js --feature=<feature> --mode=build
 ```
 
 返回字段：
