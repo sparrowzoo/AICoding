@@ -13,8 +13,6 @@
     <groupId>com.example</groupId>
     <artifactId>AICoding</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <description>Demo project for Taobao</description>
-
 
     <properties>
         <java.version>17</java.version>

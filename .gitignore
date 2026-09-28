@@ -3,3 +3,9 @@ target/
 *.iml
 *.class
 .DS_Store
+
+# OpenSpec 生成物（config/specs/command/skill 由 openspec init 生成）
+openspec/config.yaml
+openspec/specs/
+.claude/commands/
+.claude/skills/openspec-*/
