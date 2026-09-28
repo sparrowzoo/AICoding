@@ -9,15 +9,15 @@ description: 按持续维护的 Markdown 需求、产品与技术文档，以及
 
 先读 [工作流约定](../../../design-docs/workflow.md)。涉及创建、校验或执行计划时再读 [DSL 约定](<../../../design-docs/AI Coding 设计说明.md#dsl>)。它们是所有关联 skill 共用的职责和交接约定，不绑定模型或第三方工作流工具。
 
-1. 按[流程图与分流规则](../../../design-docs/workflow.md#routing)，AI 从需求意图识别简单/复杂，从当前代码、调用关系及测试分析新需求/老需求；不按需求名称或标题分类，在 TRD 记录判断依据。确认实际 projectRoot、需求目录标识（feature，例如 req-r01-profile）、当前授权范围和已有文档。目标为 doc/<需求目录>/；用户只要某阶段就完成该阶段，不自动扩大到业务编码。
+1. 按[流程图与分流规则](../../../design-docs/workflow.md#routing)，AI 从需求意图识别简单/复杂，从当前代码、调用关系及测试分析新需求/老需求；不按需求名称或标题分类，在 TRD 记录判断依据。按[接入约定](<../../../design-docs/AI Coding 设计说明.md#onboarding>)核对用户级 `grilling` 可用，`grill-me` 可委托它；已安装不重装，缺失按已有授权安装到用户级目录，不写入共享源码。确认实际 projectRoot、需求目录标识（feature，例如 req-r01-profile）、当前授权范围和已有文档。目标为 doc/<需求目录>/；用户只要某阶段就完成该阶段，不自动扩大到业务编码。
 2. 所有存量改动按[存量确认](../../../design-docs/workflow.md#existing-confirmation)调查具体代码与接口，提出候选设计，明确模块、类/函数的职责、调用关系、可改与保留范围，通过 `grill-me`（委托 `grilling`）分轮细问并取得本次范围确认；资料完整不能代替确认，已有本次具体细节确认不重复。新需求只询问会影响设计的关键未知。调查、提问和设计草案可以交替完善。
-3. 从[统一证据模板](assets/evidence.md)在需求目录创建 `evidence.md`；已有文件原位更新。各阶段执行者按[全链路证据](../../../design-docs/workflow.md#evidence)记录上下文、输入、输出、结果和证据位置。简单需求使用 `mode: lite`，由 [trd-writer](../trd-writer/SKILL.md)维护 TRD＋任务 DSL 两份设计与计划源，使用[轻量模板](assets/lite/)。复杂需求使用 `mode: full`，按 [req-writer](../req-writer/SKILL.md) → [prd-writer](../prd-writer/SKILL.md) → trd-writer 完成需求、产品、技术、验收场景与计划全部文档，使用[完整模板](assets/feature/)。高风险的简单需求补足风险、影响方和措施说明，仍可采用 lite。
+3. 从[统一证据模板](assets/evidence.md)在需求目录创建 `evidence.md`；已有文件原位更新。各阶段按[全链路证据](../../../design-docs/workflow.md#evidence)交接上下文、输入、输出、结果和证据位置；并行时由唯一协调记录者归并。按本轮意图选择 mode 并遵循[迭代承接](../../../design-docs/workflow.md#iteration)：大转小保留原文档，TRD 只写本轮变化并引用基线；小转大引用原 TRD 编号及可复核版本，重新编写全文档。简单需求使用 `mode: lite`，由 [trd-writer](../trd-writer/SKILL.md)维护 TRD＋任务 DSL 两份设计与计划源，使用[轻量模板](assets/lite/)。复杂需求使用 `mode: full`，按 [req-writer](../req-writer/SKILL.md) → [prd-writer](../prd-writer/SKILL.md) → trd-writer 完成需求、产品、技术、验收场景与计划全部文档，使用[完整模板](assets/feature/)。高风险的简单需求补足风险、影响方和措施说明，仍可采用 lite。
 4. 文档与计划明确后，按下方[脚本入口](#script-entry)执行 validate、render、check。仅授权规划则交付设计、计划与已有阶段的 evidence.md，实施/验收注明未执行；已授权实施且相关细节明确时交给 [coder](../coder/SKILL.md)执行，不固定追加一次确认。
-5. 实施中发现新增逻辑实际改变存量行为，暂停受影响部分并进入存量确认，其余独立部分可继续；内部实现调整自主完成。实施后由 [e2e-validator](../e2e-validator/SKILL.md)核对真实测试、契约与保留行为。风险及相关方影响写入文档，无需外部通知。
+5. 实施中发现新增逻辑实际改变存量行为，暂停受影响部分并进入存量确认，其余独立部分可继续；内部实现调整自主完成。实施后由 [e2e-validator](../e2e-validator/SKILL.md)核对真实测试、契约与保留行为；打回按[返工规则](../../../design-docs/workflow.md#rework)统一阻塞受影响依赖链并复验，无关任务继续。风险及相关方影响写入文档，无需外部通知。
 6. 最后验收更新 DSL 状态、备注与证据，运行 render、status、check，交付需求目录下独立的四列 task-status.md；报告完成范围、验证证据、未决问题和提交状态。文档持续维护，变更记录保存在 Git；push 与部署按用户明确授权执行。
 7. **证：** 汇总需求目录的 `evidence.md`，由 e2e-validator 核对已实施工作的全链路；规划交付由当前执行者核对已发生阶段。缺失、失败和未验证必须显式列出，不能以生成器成功代替证据完整或业务通过。
 
-按宿主可用工具直接工作，独立任务可委派子代理。验证结论以实际执行结果为依据；按任务风险选择审查方式，模型与执行工具由宿主环境决定。
+按宿主可用工具直接工作，独立任务可委派子代理。按[并行归并](../../../design-docs/workflow.md#collaboration)指定一名协调记录者写 `plan.yaml`、`evidence.md` 和生成视图；子执行者回传结果，不同时改这些共享文件。跨轮计划保留未完原任务 ID 及必要 done 前置的传递依赖闭包，撤出须有确认、原因与证据；基线任务标注非本轮新增成果。验证结论以实际执行结果为依据；按任务风险选择审查方式，模型与执行工具由宿主环境决定。
 
 <a id="script-entry"></a>
 ## 脚本入口

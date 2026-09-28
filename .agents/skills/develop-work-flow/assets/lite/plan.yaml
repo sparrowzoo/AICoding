@@ -3,6 +3,8 @@ schema: 1
 mode: lite
 feature: REPLACE_REQUIREMENT_DIR
 iteration: "01"
+# 本轮任务及必要的已完成前置（含传递依赖）；未完任务沿用编号结转，新任务编号不复用。
+# 前轮基线在 remark 说明，完成证据必须仍有效；退出项在 evidence.md 记录范围决定。
 tasks:
   - id: T01
     title: REPLACE_TASK_OUTCOME

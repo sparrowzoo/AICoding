@@ -31,6 +31,7 @@ DSL 包含 Gherkin 验收场景和 YAML 任务。`plan.yaml` 的 `mode` 指定�
 
 - `lite`：设计与计划仅 `technical.md` 与 `plan.yaml` 两份编写源。TRD 包含目标、R 编号与业务规则、验收、设计、测试及影响确认。
 - `full`：`requirement.md`、`product.md`、`technical.md`、`acceptance.feature`、`plan.yaml` 五份基本编写源，依次落实需求、产品与技术职责。
+- 同一需求按本轮复杂度选择模式：大需求的小迭代仅更新本轮 TRD＋PLAN，引用原需求编号与文档；小需求扩大时引用原 TRD 文档编号与版本，重写完整文档。来源承接及编号规则见[迭代承接](workflow.md#iteration)。
 - 两种模式另维护 `evidence.md`，记录各环节上下文、输入、输出、结果与证据入口；具体职责见[全链路证据](workflow.md#evidence)，使用[统一模板](../.agents/skills/develop-work-flow/assets/evidence.md)。它不改变 DSL 的 mode 文件契约，不重复业务规则或任务状态。
 - 两种模式都自动生成 `plan.md` 和 `task-status.md`。模式只控制文件与引用契约，不判断是否影响存量，也不代替授权或细节确认。
 
@@ -85,10 +86,10 @@ tasks:
 | 字段 | 约定 |
 |---|---|
 | `schema` | 固定整数 1；未知版本拒绝读取 |
-| `mode` | 可选，lite 或 full；未填写按 full 读取 |
+| `mode` | 本轮的文档契约，可选 lite 或 full；未填写按 full 读取；切换按迭代承接规则处理，不能仅改字段 |
 | `feature` | 需求目录完整名称，如 req-r01-profile，对应 doc/req-r01-profile/，不增加目录层级 |
 | `iteration` | 非空字符串，标识当前迭代，建议写成带引号的编号 |
-| `tasks` | 当前迭代任务集合，至少一项 |
+| `tasks` | 本轮执行任务及必要的已完成前置任务（包含其传递依赖），至少一项；无关历史不累积在当前计划 |
 | `id`、`title` | 稳定 T 编号（如 T01）和清楚的结果描述 |
 | `requirements` | 本任务涉及的 R 编号，至少一个；lite 在 TRD 声明，full 在需求与产品文档声明 |
 | `scenarios` | 本任务验收的 S 编号；有场景时任务的 R 与所引场景的 R 集合一致；无行为任务写 [] 并提供 tdd_exception |
@@ -97,17 +98,20 @@ tasks:
 | `depends_on` | 本轮前置任务编号，无依赖写 []；不可循环 |
 | `verify` | 在项目根执行的实际验证命令；工具不执行此字符串 |
 | `status` | todo、doing、done、blocked |
-| `remark` | 可选字符串，可为空；任务状态列表的简短备注，未填写显示“—”，不替代 evidence |
+| `remark` | 可选字符串，可为空；任务状态列表的简短备注，未填写显示“—”；前轮基线或上游打回须写明，不替代 evidence |
 | `evidence` | 可选；包含 red、green、review 的简短结果及可定位证据；done 时 green/review 必填，red 或 tdd_exception 至少一个 |
 | `tdd_exception` | 可选；没有适用行为测试或新 RED 时的具体理由，不得用来绕过未验证行为 |
 
-证据不粘贴整段日志。例如 `green: "node --test ...：8/8 通过；test/profile.test.mjs 的 S01 用例"`。审查注明独立或自审及结论。日志较长时链接可复核的报告；任务阻塞原因写入 remark；详细审查证据仍放 review。`doing` 与 `done` 都要求依赖已 done，但它仍不自动等于已提交、已部署或所有环境验收完成。
+证据不粘贴整段日志。例如 `green: "node --test ...：8/8 通过；test/profile.test.mjs 的 S01 用例"`。审查注明独立或自审及结论。日志较长时链接可复核的报告；任务阻塞原因写入 remark；详细审查证据仍放 review。`doing` 与 `done` 都要求依赖已 done，但它仍不自动等于已提交、已部署或所有环境验收完成。上游被打回时，由验收方/协调记录者按[依赖恢复规则](workflow.md#rework)一并阻塞传递依赖并处理失效证据；CLI 不自动变更状态。跨轮基线保留和退出项处理见[迭代承接](workflow.md#iteration)，并行写入见[记录归并](workflow.md#collaboration)。
 
 ### 验收任务状态文件
 
 最后验收交付 `doc/req-【需求】/task-status.md`，如 `doc/req-r01-profile/task-status.md`。文件仅有任务编号、名称、状态、备注四列，由 plan.yaml 生成，不新增第二份手工任务数据。状态显示与职责见 [任务状态列表](workflow.md#task-status)。生成标记及源摘要使用不可见注释，不增加可见列或额外说明。
 
+<a id="onboarding"></a>
 ### 使用
+
+接入前确认 Node.js 22+、npm、Git，以及宿主可加载的用户级 `grilling`；老需求访谈可直接调用 grilling，或经已加载的 grill-me 委托。`grill-me`/`grilling` 属于第三方用户级依赖，不随 AICoding 的目录链接安装，setup 也只安装解析库。已有可用版本直接复用；缺失时从已确认来源安装到对应工具的用户级 skills 目录并核对可加载性，不安装进业务项目或 AICoding。来源或安装条件尚未明确时说明具体缺项，继续不依赖它的工作，不假称已完成访谈。
 
 通过目录软链接跨项目复用同一份 skills。每个项目的 `.agents` 和 `.claude` 都直接指向 AICoding 的 `.agents` 唯一源。以下以 `${user.home}/workspace/AICoding` 为源仓库位置示例；`${user.home}` 表示用户家目录，在 Shell 命令中写作 `${HOME}`。请按实际克隆位置调整路径：
 
@@ -131,6 +135,8 @@ readlink .agents
 readlink .claude
 ```
 
+源仓库 AICoding 自身保留 `.claude/settings.local.json` 等本地设置，通过 `.claude/skills → ../.agents/skills` 与 `.claude/agents → ../.agents/agents` 两个目录链接暴露统一入口；不逐个维护 skill 链接。上述业务项目的 `.agents`、`.claude` 仍直接指向唯一源目录。
+
 接入后，按需调用已加载的 `develop-work-flow`、`req-writer`、`prd-writer`、`trd-writer` 等 skills。
 
 **后续维护：** 修改、新增 skills、agents、模板和脚本都回到 AICoding 的 `.agents`，Git 提交与 GitHub 同步也在 AICoding 仓库进行。各项目通过现有目录链接复用源文件，无需复制或逐个建立 skill 链接。工作流设计文档继续维护在 AICoding 的 `design-docs/`，业务文档仍按约定保存在对应项目。唯一源移动或换电脑后，重新核对并调整两个链接的目标。
@@ -147,6 +153,7 @@ readlink .claude
 | Gherkin 表达验收行为，YAML 表达实施任务 | 场景明确输入、行为与结果，任务明确依赖、范围和验证入口；场景绑定真实测试，AI 按任务调用实施工具，不把文件解析成功视为业务通过。 |
 | 从 DSL 生成计划和任务状态视图 | 同一任务数据同时服务 AI 执行与团队阅读，避免手工维护时出现状态分歧；最终状态表固定四列，详细证据留在任务证据及测试报告中。 |
 | 全链路证据集中索引 | evidence.md 连接每环节的上下文、输入、输出、实际结果和证据；各阶段维护、e2e 汇总核对，未执行和未验证如实显示。 |
+| 按本轮复杂度承接原文档 | 大需求小迭代只写 TRD 本轮变化并引用原需求；小需求扩大则引用原 TRD 编号及版本，重新形成全文档；保留稳定编号，避免无据覆盖或多处当前事实。 |
 | 文档按需求持续维护，Git 保留版本 | 每项需求有稳定目录，目标、设计、场景、任务与提交可连续追溯；迭代直接更新所属文档，无需复制整套资料。 |
 | 独立判断存量影响，确认具体变化 | 技术事实由 AI 调查，业务意图由用户确定；存量改动通过具体证据与分轮确认形成共识，新逻辑在明确且获授权后推进，避免重复确认与整轮返工。 |
 | RIGHT-BICEP 配合真实 RED/GREEN 和审查 | 用例选择覆盖正确性、边界及适用风险；验证结果必须来自实际执行，不能以流程步骤齐全代替质量判断。 |

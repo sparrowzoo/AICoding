@@ -7,16 +7,16 @@ description: 将已确认需求转成产品行为规则和 Gherkin 验收场景�
 
 # 产品设计
 
-开始前读取[公共工作流](../../../design-docs/workflow.md)。轻量模式将规则与 Gherkin 场景写入 TRD，由 [trd-writer](../trd-writer/SKILL.md)统一维护，不额外创建产品或场景文件。以下规则用于完整模式，输入为当前用户授权及目标项目的 `doc/<需求目录>/requirement.md`；缺少需求文档时先整理最小需求，不另建一套平行来源。
+开始前读取[公共工作流](../../../design-docs/workflow.md)。按[迭代承接](../../../design-docs/workflow.md#iteration)确定本轮模式。轻量模式由 [trd-writer](../trd-writer/SKILL.md)在 TRD 写本轮规则变化与 Gherkin 场景；已有产品/场景文件保留作基线；存在基线时，当前有效规则为原基线加 TRD 明确变更，不为小改重写全文。以下规则用于完整模式，输入为当前用户授权及目标项目的 `doc/<需求目录>/requirement.md`；缺少需求文档时先整理最小需求，不另建一套平行来源。
 
-沿用上游需求目录（如 req-r01-profile），维护 `doc/<需求目录>/product.md` 和 `acceptance.feature`：
+沿用上游需求目录（如 req-r01-profile），维护 `doc/<需求目录>/product.md` 和 `acceptance.feature`。lite 转 full 时重新编写完整产品和场景，引用原 `TRD-<需求目录>` 编号与可核实的基线版本（未提交来源按公共规则留证），保留 R/S 编号、新编号递增；不能只引用已被覆盖的当前 TRD。完整模式的职责为：
 
 - `product.md` 用 `R01` 等稳定标识链接需求，定义用户可见行为、规则、状态变化及适用约束；引用需求背景，不重述问题、目标和范围。
 - `acceptance.feature` 是场景的唯一正文，使用 Gherkin 描述可观察行为并保留稳定场景标识。只覆盖与功能相关的正常、边界、异常或并发条件，不机械凑类别和数量。
 - 将场景落实到现有测试入口或明确的待实施绑定；文字场景和仅通过语法检查都不等于测试已经运行。
 
-先核对产品行为与接口事实，再设计本次可完成的功能切片。所有存量行为按[存量确认](../../../design-docs/workflow.md#existing-confirmation)核对改变与保留范围，将结论交给技术阶段细化代码和接口影响。新逻辑的明确文档直接作为计划依据；关键未知或新增存量影响才继续询问，已有本次具体确认不重复。
+先核对产品行为与接口事实，再设计本次可完成的功能切片。存量细问前按[接入约定](<../../../design-docs/AI Coding 设计说明.md#onboarding>)核对用户级 grilling。所有存量行为按[存量确认](../../../design-docs/workflow.md#existing-confirmation)核对改变与保留范围，将结论交给技术阶段细化代码和接口影响。新逻辑的明确文档直接作为计划依据；关键未知或新增存量影响才继续询问，已有本次具体确认不重复。
 
 按公共规范完成适度审查，交接实际文件、规则与场景关联以及未决项。新建或修改 DSL 时读取 [DSL 规范](<../../../design-docs/AI Coding 设计说明.md#dsl>)，不手写 `plan.md`，不因产品方案完成自动开始编码。
 
-每次交接前按[全链路证据](../../../design-docs/workflow.md#evidence)更新同目录 `evidence.md`：记录本阶段上下文、需求与确认输入、产品规则/场景输出、实际结果及可定位来源；不把场景文字当作已执行测试。
+每次交接前按[全链路证据](../../../design-docs/workflow.md#evidence)记录到同目录 `evidence.md`；并行时按[归并规则](../../../design-docs/workflow.md#collaboration)只回传给指定协调记录者：记录本阶段上下文、需求与确认输入、产品规则/场景输出、实际结果及可定位来源；不把场景文字当作已执行测试。
