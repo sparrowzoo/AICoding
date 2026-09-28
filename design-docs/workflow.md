@@ -21,6 +21,7 @@
 | 主题 | 唯一执行来源 |
 | --- | --- |
 | 完整流程与读取边界 | [执行入口](../.agents/skills/develop-work-flow/SKILL.md#runtime-boundary)与[执行步骤](../.agents/skills/develop-work-flow/SKILL.md#steps) |
+| 需求开始与工作分支 | [需求分支准备](../.agents/skills/develop-work-flow/SKILL.md#requirement-branch) |
 | 需求分类与历史功能代码设计确认 | [分流规则](../.agents/skills/develop-work-flow/SKILL.md#routing)与[确认规则](../.agents/skills/develop-work-flow/SKILL.md#existing-confirmation) |
 | 文档、接口与 DSL | [文档职责](../.agents/skills/develop-work-flow/SKILL.md#documents)、[接口共识](../.agents/skills/develop-work-flow/SKILL.md#interfaces)、[DSL 契约](../.agents/skills/develop-work-flow/SKILL.md#dsl) |
 | 迭代与并行 | [迭代承接](../.agents/skills/develop-work-flow/SKILL.md#iteration)、[打回与恢复](../.agents/skills/develop-work-flow/SKILL.md#rework)、[记录归并](../.agents/skills/develop-work-flow/SKILL.md#collaboration) |

@@ -12,6 +12,8 @@
 
 原需求编号、文档/原 TRD 编号与版本、模式承接及本轮变更范围：REPLACE_ITERATION_SOURCE
 
+需求工作分支与准备结果：REPLACE_REQUIREMENT_BRANCH（记录需求目录、类型前缀与完整分支名、基线提交、实际切换/复用结果及工作区位置；尚未完成如实说明，不预填成功）。
+
 适用代码基线、环境及必要前提：REPLACE_BASELINE_CONTEXT（按本轮需要填写，尚未取得的资料写明）。
 
 ## 环节记录

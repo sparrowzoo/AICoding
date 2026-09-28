@@ -16,12 +16,12 @@ description: 按持续维护的 Markdown 需求、产品与技术文档，以及
 
 通过软链接加载时，解析本文件真实路径以定位技能包内的模板、脚本和关联技能；无需向上查找源仓库设计文档。使用宿主已有工具与项目测试框架，不绑定模型、代理接口或第三方工作流。
 
-导航：[执行步骤](#steps) · [需求分流](#routing) · [文档职责](#documents) · [DSL](#dsl) · [迭代承接](#iteration) · [测试](#right-bicep) · [证据](#evidence) · [验收](#task-status) · [接入](#onboarding) · [脚本](#script-entry)
+导航：[执行步骤](#steps) · [需求分支](#requirement-branch) · [需求分流](#routing) · [文档职责](#documents) · [DSL](#dsl) · [迭代承接](#iteration) · [测试](#right-bicep) · [证据](#evidence) · [验收](#task-status) · [接入](#onboarding) · [脚本](#script-entry)
 
 <a id="steps"></a>
 ## 执行步骤
 
-1. 确认实际 projectRoot、授权范围、已有文档及需求目录，例如 `doc/req-r01-profile/`；核对[运行前提](#onboarding)，按[分流规则](#routing)分别判断本轮复杂度与存量影响。
+1. 确认实际 projectRoot、授权范围、已有文档及需求目录，例如 `doc/req-r01-profile/`；在首次写入需求文档或代码前，按[需求分支规则](#requirement-branch)创建并切换工作分支，续做时核对并复用对应分支。核对[运行前提](#onboarding)，按[分流规则](#routing)分别判断本轮复杂度与存量影响。
 2. 调查并记录具体代码事实。涉及历史功能逻辑时，无论 full/lite，先按[确认规则](#existing-confirmation)展示具体代码设计并取得用户确认；已有本次同一具体方案的确认直接复用，未决问题只阻塞其影响部分。
 3. 从首个实际环节维护[全链路证据](#evidence)。lite 由 [trd-writer](../trd-writer/SKILL.md)维护 TRD＋PLAN，使用[轻量模板](assets/lite/)；full 按 [req-writer](../req-writer/SKILL.md) → [prd-writer](../prd-writer/SKILL.md) → trd-writer 完成全部设计与计划源，使用[完整模板](assets/feature/)。按[迭代承接](#iteration)保留基线、编号和未完任务。
 4. 按[DSL 契约](#dsl)完善任务，执行 `validate`、`render`、`check`。仅规划时交付设计、阅读计划与已发生阶段的 evidence.md，实施/验收标明未执行；授权覆盖、细节明确且涉及历史逻辑的代码设计已获用户确认时，交给 [coder](../coder/SKILL.md)逐任务实施。独立新功能按其已有授权推进。
@@ -29,6 +29,25 @@ description: 按持续维护的 Markdown 需求、产品与技术文档，以及
 6. 交给 [e2e-validator](../e2e-validator/SKILL.md)核对真实场景、测试、契约与保留行为。打回按[依赖恢复](#rework)处理；依据真实结果更新状态和证据，执行 `render`、`status`、`check`，交付[四列状态表](#task-status)及全链路证据。
 7. 报告完成范围、验证结果、未决项和提交状态；提交、push、合并、部署分别按已有授权处理。需要提交时遵守 [Git 追溯](#traceability)，后续在原需求目录持续维护。
 
+
+<a id="requirement-branch"></a>
+## 需求开始前创建工作分支
+
+每项新需求开始时，先只读确认目标项目、需求目录、Git 状态和基线，再在**目标业务仓库**创建并切换需求分支；完成后才能写入该需求的文档或代码。此规则包含新功能、修复、full/lite 和仅规划任务；通过软链接调用 skill 时，不能误在共享 skills 源仓库切分支。直接调用任一阶段技能也要执行相同检查。
+
+分支名为 **`<类型前缀><需求目录完整名称>`**，前缀后与 `doc/` 下的目录名逐字一致，不包含 `doc/`，不改需求目录、DSL 的 `feature` 或已有 R/S/T 编号：
+
+| 需求类型 | 目录示例 | 分支示例 |
+| --- | --- | --- |
+| 新功能 | `doc/req-r01-profile/` | `feature_req-r01-profile` |
+| 修复 | `doc/req-r02-login/` | `fixed_req-r02-login` 或 `bug_req-r02-login` |
+
+仅使用 `feature_`、`fixed_`、`bug_` 三种前缀。用户已指定类型或前缀时沿用；未指定的新功能使用 `feature_`，缺陷修复使用 `bug_`，已有同需求修复分支使用 `fixed_` 时直接沿用。前缀只表达工作类型，不替代基于代码的存量影响判断。
+
+- **新建前：** 在实际 projectRoot 核对 `git status --short`、当前分支、相关本地/远程分支及 worktree。按用户或项目约定选择基线；未指定时核实当前 HEAD 是否适合作为本需求起点，不能默认叠在无关需求分支上。用 `git check-ref-format --branch <分支名>` 校验名称，确认未被其他需求占用，再执行 `git switch -c <分支名> <已核对的基线>`，用 `git branch --show-current` 核对实际结果。
+- **已有分支：** 同一需求续做、切换阶段或继续迭代时，核对归属后切回/复用对应分支，不为每个阶段重新创建。只有已核实属于该需求的远程分支时，从它建立本地跟踪分支；分支已被另一 worktree 使用时复用对应工作区。同名但归属不符时先解决命名冲突，不用 `-C`、`-B` 或删除分支强制覆盖。
+- **保留工作区：** 不自动 reset、清理、stash 或提交既有修改。无关未提交工作需要隔离时，在不改动原工作区的前提下从已核对基线建立独立 worktree，并把后续 projectRoot 指向它；需要沿用的本需求未提交内容不能因此遗失。无法安全分离时说明具体冲突，继续只读调查。
+- **记录与失败：** 将需求目录、分支名、基线提交、实际切换结果和工作区位置记录到该需求的 `evidence.md`。创建、切换或验证失败时，不在主干或无关分支继续写需求文档/代码，也不声称分支已准备完成。分支准备不自动授权提交、push、合并或部署。
 
 ## 基本设计原则
 
@@ -332,7 +351,7 @@ I/C 没有可靠前提或独立参照时说明原因；P 不适用时说明原�
 
 | 环节 | 记录责任 | 应能追溯的内容 |
 |---|---|---|
-| 调查与分流 | develop-work-flow 或首个实际执行的 skill | 用户诉求、代码事实、简单/复杂与新/老判断、授权和确认来源 |
+| 调查与分流 | develop-work-flow 或首个实际执行的 skill | 用户诉求、需求目录与分支/基线及切换结果、代码事实、简单/复杂与新/老判断、授权和确认来源 |
 | 需求与产品 | req-writer / prd-writer；lite 由 trd-writer 合并记录 | 需求及规则输入、确认范围、R/S 标识与产物；lite 注明合并于 TRD，不伪称运行了独立阶段 |
 | 技术与计划 | trd-writer | 代码影响、职责与契约、设计依据、任务拆分及计划校验结果 |
 | 实施与测试 | coder | T 任务对应代码、真实 RED/GREEN、命令和测试报告，或有依据的 TDD 例外 |
