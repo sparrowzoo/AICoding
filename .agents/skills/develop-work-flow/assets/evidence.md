@@ -8,6 +8,8 @@
 
 本次目标、授权范围与确认依据：REPLACE_SCOPE_AUTHORIZATION
 
+历史功能逻辑的代码设计确认：REPLACE_CODE_DESIGN_CONFIRMATION（full/lite 均记录用户已确认的具体方案/版本、受影响代码范围与原始确认来源；未确认写明待确认，不能根据一般实施授权推定。独立新逻辑注明无历史影响的调查依据）。
+
 原需求编号、文档/原 TRD 编号与版本、模式承接及本轮变更范围：REPLACE_ITERATION_SOURCE
 
 适用代码基线、环境及必要前提：REPLACE_BASELINE_CONTEXT（按本轮需要填写，尚未取得的资料写明）。

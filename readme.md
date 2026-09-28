@@ -2,7 +2,7 @@
 
 AI Coding 是一套供团队与 AI 协作使用的研发工作流。通过 Markdown 工程文档、Gherkin 验收场景和 YAML 任务计划，把需求、设计、实现、测试与 Git 提交连接起来，按可独立验收的小功能持续推进。
 
-统一入口为 [develop-work-flow](.agents/skills/develop-work-flow/SKILL.md)。工作流使用目标项目已有的开发与测试工具，不绑定特定模型或代理接口。本文提供概览与接入入口；完整规范维护于 [design-docs/workflow.md](design-docs/workflow.md)，架构与 DSL 契约见 [AI Coding 设计说明](<design-docs/AI Coding 设计说明.md>)。
+统一入口为 [develop-work-flow](.agents/skills/develop-work-flow/SKILL.md)，完整执行规则与 DSL 契约内置于该文件。工作流使用目标项目已有的开发与测试工具，不绑定特定模型或代理接口。本文提供概览与接入入口；技能执行只按需读取技能包和业务项目输入，不读取 `design-docs/` 或本 README 来补充规则。维护者可查阅[工作流维护说明](design-docs/workflow.md)与[设计依据](<design-docs/AI Coding 设计说明.md>)。
 
 ## 工作方式
 
@@ -13,15 +13,15 @@ AI 根据本轮需求意图选择文档深度，根据当前代码、调用关�
 | `lite` | 目标集中、规则和实现路径清楚的简单需求 | `technical.md`（TRD，含规则与验收场景）、`plan.yaml` |
 | `full` | 存在多组规则、交互分支或复杂模块协作的需求 | `requirement.md`、`product.md`、`technical.md`、`acceptance.feature`、`plan.yaml` |
 
-新需求澄清关键未知后，按已授权范围推进；改变既有行为的需求先调查代码，通过 `grill-me`（可委托 `grilling`）详细确认边界、职责与保留行为。仅授权规划时交付文档与计划，实施授权明确后再进入编码与验收。判定细节见[分流规则与流程图](design-docs/workflow.md#routing)。
+新需求澄清关键未知后，按已授权范围推进。**涉及历史功能逻辑变更时，无论 full/lite，都必须先展示具体代码设计并取得用户确认，才能实施**；一般开发授权、文档完整或“内部调整”不能替代代码设计确认。通过 `grill-me`（可委托 `grilling`）确认具体改法、边界、职责与保留行为。仅规划时交付文档与计划。判定细节见主 SKILL 的[分流规则](.agents/skills/develop-work-flow/SKILL.md#routing)与[确认要求](.agents/skills/develop-work-flow/SKILL.md#existing-confirmation)。
 
 业务产物在目标项目的 `doc/req-rNN-name/` 持续维护，例如 `doc/req-r01-profile/`。两种模式都维护 `evidence.md`，记录各阶段的上下文、输入、输出、实际结果和可定位证据；从 `plan.yaml` 生成阅读计划 `plan.md`，最终验收生成仅含任务编号、名称、状态、备注的 `task-status.md`。
 
-涉及行为的任务保留真实 RED/GREEN 与审查证据，按 [RIGHT-BICEP](design-docs/workflow.md#right-bicep) 考虑适用测试维度。需求、场景、任务使用稳定的 R/S/T 编号，跨轮承接与 Git 追溯遵循[迭代约定](design-docs/workflow.md#iteration)。
+涉及行为的任务保留真实 RED/GREEN 与审查证据，按 [RIGHT-BICEP](.agents/skills/develop-work-flow/SKILL.md#right-bicep) 考虑适用测试维度。需求、场景、任务使用稳定的 R/S/T 编号，跨轮承接与 Git 追溯遵循[迭代约定](.agents/skills/develop-work-flow/SKILL.md#iteration)。
 
 ## 接入业务项目
 
-准备本仓库的本地副本，以及 Node.js 22+、npm、Git 和可加载 skills 的 AI 工具。访谈使用的第三方 `grilling` 安装在对应工具的用户级 skills 目录，已有可用安装直接复用；它不随软链接或 `setup.mjs` 安装。完整前置条件见[接入约定](<design-docs/AI Coding 设计说明.md#onboarding>)。
+准备本仓库的本地副本，以及 Node.js 22+、npm、Git 和可加载 skills 的 AI 工具。访谈使用的第三方 `grilling` 安装在对应工具的用户级 skills 目录，已有可用安装直接复用；它不随软链接或 `setup.mjs` 安装。完整前置条件见主 SKILL 的[接入约定](.agents/skills/develop-work-flow/SKILL.md#onboarding)。
 
 ### 1. 链接共享源
 
@@ -81,9 +81,9 @@ node .agents/skills/develop-work-flow/scripts/workflow.mjs check --project "$PWD
 
 | 入口 | 内容 |
 | --- | --- |
-| [工作流约定](design-docs/workflow.md) | 分流、文档职责、测试、迭代承接、证据与 Git 追溯 |
-| [设计说明](<design-docs/AI Coding 设计说明.md>) | 架构、DSL 字段、接入方式和设计依据 |
-| [develop-work-flow](.agents/skills/develop-work-flow/SKILL.md) | 统一编排与脚本使用说明 |
+| [develop-work-flow](.agents/skills/develop-work-flow/SKILL.md) | 自包含的执行流程、确认边界、DSL、测试、证据与脚本说明 |
+| [工作流维护说明](design-docs/workflow.md) | 维护者使用的文件职责、执行规范索引与维护方式 |
+| [设计说明](<design-docs/AI Coding 设计说明.md>) | 维护者使用的架构、实现边界和设计依据 |
 | [req-writer](.agents/skills/req-writer/SKILL.md) / [prd-writer](.agents/skills/prd-writer/SKILL.md) | 需求梳理、产品行为与验收场景 |
 | [trd-writer](.agents/skills/trd-writer/SKILL.md) | 技术设计与任务 DSL |
 | [coder](.agents/skills/coder/SKILL.md) / [e2e-validator](.agents/skills/e2e-validator/SKILL.md) | 按任务实施、测试、审查与最终验收 |
@@ -92,7 +92,7 @@ node .agents/skills/develop-work-flow/scripts/workflow.mjs check --project "$PWD
 
 ## 维护与验证
 
-自有 skills、agents、脚本和模板的唯一源为 `.agents/`；本仓库的设计正文统一维护于 `design-docs/`。业务代码与业务文档归目标项目，第三方 skills 和运行依赖安装在用户家目录。通过软链接读取相对文档时，先解析真实源路径。
+自有 skills、agents、脚本和模板的唯一源为 `.agents/`，公共执行规则统一维护于主 SKILL；`design-docs/` 只保存维护说明与设计依据。业务代码与业务文档归目标项目，第三方 skills 和运行依赖安装在用户家目录。通过软链接加载时，先解析真实路径以定位技能包资源，不回源仓库读取设计说明。
 
 维护脚本后，在 AICoding 根目录运行测试（依赖需已准备）：
 
