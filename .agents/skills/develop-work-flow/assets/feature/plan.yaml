@@ -1,0 +1,16 @@
+# 起稿模板：替换所有 REPLACE 内容，路径和验证命令必须来自目标项目。
+schema: 1
+mode: full
+feature: REPLACE_REQUIREMENT_DIR # 例如 req-r01-profile，与 doc/ 下的目录名一致
+iteration: "01"
+tasks:
+  - id: T01
+    title: REPLACE_TASK_OUTCOME
+    requirements: [R01]
+    scenarios: [S01]
+    design: [technical.md#api-01, technical.md#test-strategy]
+    files: [REPLACE_PROJECT_RELATIVE_FILE]
+    depends_on: []
+    verify: REPLACE_TEST_COMMAND
+    status: todo
+    remark: "" # 最后验收任务状态表的简短备注

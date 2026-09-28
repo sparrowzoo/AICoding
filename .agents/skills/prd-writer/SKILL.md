@@ -1,87 +1,22 @@
 ---
 name: prd-writer
-description: 承接 req-writer 的业务需求文档，使用 OpenSpec CLI 产出 proposal.md（PRD 产品方案）。doc-reviewer (opus) 独立审查。
-allowed-tools:
-  - Write
-  - Edit
-  - Read
-  - Bash
-  - Grep
-  - Agent
-  - Skill
+description: 将已确认需求转成产品行为规则和 Gherkin 验收场景；用于功能设计或行为调整，交接技术设计与可执行计划。
 ---
 
-你是资深产品方案撰写专家，精通 OpenSpec 规范。将业务需求转化为 OpenSpec 格式的 **proposal.md**。
+通过软链接加载时，先解析本文件的真实路径，再以真实目录定位下列相对链接；设计文档唯一来源为源仓库 `design-docs/`。
 
-## 输入
+# 产品设计
 
-| 来源 | 文件 | 内容 |
-|------|------|------|
-| req-writer | 用户交付路径；优先 `doc/{feature}/requirement.md`，兼容旧 `docs/{feature}/requirement.md` | 业务需求文档 |
+开始前读取[公共工作流](../../../design-docs/workflow.md)。轻量模式将规则与 Gherkin 场景写入 TRD，由 [trd-writer](../trd-writer/SKILL.md)统一维护，不额外创建产品或场景文件。以下规则用于完整模式，输入为当前用户授权及目标项目的 `doc/<需求目录>/requirement.md`；缺少需求文档时先整理最小需求，不另建一套平行来源。
 
-若无上游文档，直接接收用户描述。
+沿用上游需求目录（如 req-r01-profile），维护 `doc/<需求目录>/product.md` 和 `acceptance.feature`：
 
-## 输出
+- `product.md` 用 `R01` 等稳定标识链接需求，定义用户可见行为、规则、状态变化及适用约束；引用需求背景，不重述问题、目标和范围。
+- `acceptance.feature` 是场景的唯一正文，使用 Gherkin 描述可观察行为并保留稳定场景标识。只覆盖与功能相关的正常、边界、异常或并发条件，不机械凑类别和数量。
+- 将场景落实到现有测试入口或明确的待实施绑定；文字场景和仅通过语法检查都不等于测试已经运行。
 
-```
-doc/openspec/changes/{feature}/
-├── .openspec.yaml
-└── proposal.md
-```
+先核对产品行为与接口事实，再设计本次可完成的功能切片。所有存量行为按[存量确认](../../../design-docs/workflow.md#existing-confirmation)核对改变与保留范围，将结论交给技术阶段细化代码和接口影响。新逻辑的明确文档直接作为计划依据；关键未知或新增存量影响才继续询问，已有本次具体确认不重复。
 
-## 统一工程文档目录
+按公共规范完成适度审查，交接实际文件、规则与场景关联以及未决项。新建或修改 DSL 时读取 [DSL 规范](<../../../design-docs/AI Coding 设计说明.md#dsl>)，不手写 `plan.md`，不因产品方案完成自动开始编码。
 
-- 默认使用**目标项目根目录下的 `doc/`**，不是操作系统 `/doc`，也不是 skill 仓库目录。用户另有明确路径时优先遵循。本约定只管理工程产物；第三方 skills/插件仍安装于家目录。
-- OpenSpec 配置、主规格、changes、archive 统一在 `doc/openspec/`；Superpowers 设计稿和计划分别在 `doc/superpowers/specs/`、`doc/superpowers/plans/`。已有 OpenSpec design 时直接引用，不复制另一份设计稿。**不建立根目录 `openspec` 软链接，也不维护第二份副本。**
-- 所有 OpenSpec CLI（包括 new、status、instructions、validate、archive）使用 `workdir=<项目根>/doc`。用工具显式指定工作目录，或先 `cd "$project_root/doc"`；不要假设上次 shell 的 cd 会保留。CLI 不会从项目根向下自动发现 `doc/openspec`。
-- 初始化前检查 `doc/openspec/` 和旧根 `openspec/`。旧目录为唯一来源且目标不存在时，统一目录请求允许整体迁移并修复引用；不只搬 proposal。两处都存在时先比较并明确权威来源，不覆盖、静默合并或生成第二份活跃 change。已有外部 store 需保留其语义；与本约定冲突时说明实际位置，不擅自本地化。
-- 新项目在项目根执行 `openspec init doc --tools none --language zh-CN --no-animation`；不是 `openspec init doc/openspec`。初始化后进入 doc，再运行其他 CLI。`--tools none` 避免在项目生成第三方 skills。
-- 写文件前从 doc 执行 `openspec list --json`，验证返回 root 正是该 doc；若落到祖先根或外部 store，先纠正选择。instructions 的 `resolvedOutputPath`/`changeDir` 是实际写入路径，不能再手工追加一个 doc。
-- **规划根与代码根分开**：OpenSpec 会把 doc 作为规划根，相关 actionContext 也可能限于 doc；这不是源码根。此 skill 只产出 PRD/TRD。下游编码流程须显式接收实际项目根与 plan 路径，在项目根运行构建/测试，不把源码创建在 doc/src；若使用有额外范围限制的官方 apply，先核对该执行流程的范围，不静默越界。
-- Superpowers 默认 `docs/superpowers/` 由本约定覆盖，调用时传最终输出路径。旧 docs 仅作存量输入查找位置；迁移既有计划保留完整内容并修复 Spec/交接引用，同名不同内容不得覆盖，不复制计划维持旧路径。
-- reviewer/下游接收实际绝对路径：`projectRoot`、`openSpecWorkingDirectory`（项目根/doc）、`changeRoot`、`proposalPath`、`designPath`、`specPaths[]`、`planPath`。计划内源码路径相对项目根，Markdown 链接按文件位置正确换算。本 skill 不自动改写其他未调用 skill，不能宣称旧硬编码消费者已全部兼容。
-
-## 工作流程
-
-下文所有 `openspec` 命令均以 `<项目根>/doc` 为工作目录；文档及源码路径均相对项目根。
-
-### Step 1：确定 change 名称
-
-从 requirement.md 或用户描述提取 kebab-case 名称。
-
-### Step 2：OpenSpec 脚手架
-
-```
-Skill: opsx:new
-```
-
-遵循 opsx:new 流程创建 change；Codex 对应 `openspec-new-change`。加载官方 skill 时明确 `openSpecWorkingDirectory=<项目根>/doc`，遵循上述目录约定，使用全局安装版本。
-
-### Step 3：获取模板并生成 proposal.md
-
-```bash
-openspec instructions proposal --change "{feature}" --json
-```
-
-根据返回的 template + context + rules 生成 proposal.md。
-
-### Step 4：验证
-
-```bash
-openspec status --change "{feature}"
-```
-
-确认 proposal 为 done。
-
-### Step 5：质量门禁
-
-```
-Agent({
-  agentType: 'doc-reviewer',
-  model: 'opus',
-  description: '审查 PRD 产品方案',
-  prompt: '项目根：{projectRoot}。审查实际绝对路径 {proposalPath}。审查类型：proposal。检查：Capabilities 拆分合理、In/Out Scope 明确、验收标准可测试、决策有依据。'
-})
-```
-
-独立审查 proposal.md，≤2 次重审。超限标注 `⚠️ 人工介入`。
+每次交接前按[全链路证据](../../../design-docs/workflow.md#evidence)更新同目录 `evidence.md`：记录本阶段上下文、需求与确认输入、产品规则/场景输出、实际结果及可定位来源；不把场景文字当作已执行测试。

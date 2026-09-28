@@ -1,61 +1,23 @@
 ---
 name: req-writer
-description: 将模糊业务诉求转化为结构化业务需求文档。使用 gstack skills 协作生成，doc-reviewer (opus) 独立审查。下游对接 prd-writer。
-allowed-tools:
-  - Write
-  - Edit
-  - Read
-  - Grep
-  - Agent
-  - Skill
+description: 将业务诉求整理为需求文档，明确问题、目标、范围和稳定需求标识；用于新需求梳理或需求调整，下游交接产品设计。
 ---
 
-你是一位资深业务分析师。将模糊的业务诉求转化为结构化的 **业务需求文档（requirements.md）**。
+通过软链接加载时，先解析本文件的真实路径，再以真实目录定位下列相对链接；设计文档唯一来源为源仓库 `design-docs/`。
 
-## 管道定位
+# 需求编写
 
-```
-业务方(原始诉求) → 你(requirement.md) → prd-writer(proposal.md) → trd-writer(design+specs+plan) → coder(编码) → e2e-validator(验收)
-```
+开始前读取[公共工作流](../../../design-docs/workflow.md)，遵循其中的产物归属、迭代和授权规则。当前项目约定与用户明确要求优先；不因调用本 skill 自动获得实施业务代码的授权。
 
-## 输出
+先按[分流规则](../../../design-docs/workflow.md#routing)确定文档深度。轻量模式由 [trd-writer](../trd-writer/SKILL.md)将必要目标与规则写入 TRD，不为补齐流程额外创建 requirement.md。以下产物规则用于完整模式。
 
-```
-./docs/{feature}/requirement.md
-```
+在目标项目维护 `doc/<需求目录>/requirement.md`，已有文档原位更新。本文只负责问题、目标、范围、约束及稳定的 `R01` 等需求 anchor；行为规则交给 `product.md`，场景交给 `acceptance.feature`，避免重复事实。
 
-- `{feature}` 用英文 kebab-case，≤4 单词
+1. 读取用户本轮诉求、适用项目约定及现有需求。区分已确认事实、假设和待决问题；不把参考案例变成当前功能。
+2. 先检查现有 doc/ 目录，为新用户需求分配项目内唯一、稳定的 req-rNN-name 目录（如 req-r01-profile）；同一需求迭代沿用原目录。目录编号与内部 R01 子项标识的区别见公共规范。按可独立交付的功能切出本次小迭代，说明要解决的问题、可观察的目标及范围外事项。沿用已有需求标识，不因排序变化重编号。
+3. 新逻辑只询问会影响设计的关键未知；所有存量改动按[存量确认](../../../design-docs/workflow.md#existing-confirmation)先查事实、再分组细问。将需求层的结论交接至 TRD 的具体代码与接口确认；已有本次明确结论不重复询问，不能仅因文档完整跳过存量确认。
+4. 核对每条需求能在下游关联行为和验收，不预先规定技术实现或编造外部能力。复杂或高风险内容按公共规范选择独立审查；普通内容完成自审即可，如实说明审查方式。
 
-## 工作流程
+交接实际项目根、feature、需求文件及仍影响设计的未决问题。缺少非必需工具不阻断写作；不得伪称调用了其他 skill 或通过了独立审查。
 
-### Step 1：确定 feature 名称
-
-从用户描述提取。不确定则主动询问。
-
-### Step 2：gstack skills 协作生成
-
-不要自己写内容。按顺序委托 gstack skills 协作：
-
-```
-Skill: office-hours       → Builder 模式脑暴 → 问题定义、用户画像、场景
-Skill: plan-ceo-review    → 高层战略视角审视 → 范围边界、优先级、风险
-Skill: plan-eng-review    → 工程可行性审查 → 架构建议、测试矩阵
-Skill: plan-design-review → 质量评分 → AI 内容质量检查
-```
-
-### Step 3：合成 requirements.md
-
-将 skills 产出合成为 `./docs/{feature}/requirement.md`。
-
-### Step 4：质量门禁
-
-```
-Agent({
-  agentType: 'doc-reviewer',
-  model: 'opus',
-  description: '审查需求文档',
-  prompt: '审查 ./docs/{feature}/requirement.md。审查类型：requirement。检查：正确性、完整性、可验证性、术语一致性、异常场景覆盖。'
-})
-```
-
-独立审查 requirements.md，≤2 次重审。超限标注 `⚠️ 人工介入`。
+每次交接前按[全链路证据](../../../design-docs/workflow.md#evidence)更新需求目录的 `evidence.md`：记录本阶段上下文、诉求与确认输入、需求产物、实际结果及来源，缺失资料标为未核实。
