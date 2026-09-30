@@ -61,6 +61,7 @@ description: 仅用于 sparrowzoo 项目；用户明确调用 write-blog、或�
 
 固定主线（与 write-doc 一致）：「标题摘要 → 结论先行 → 问题背景 → 详细内容 → 总结归纳 → 参考资料」。
 
+- **hero**：内联 SVG，要**美观大方、简约，并与页面深色风格一致**（深色背景 + 品牌强调色 + 浅色文字），设计原则见 `references/rules.md`。
 - **conclusion**：直接回答主要问题并写明前提；最好附权威说明，保证严谨。
 - **background**：解释必要术语与上下文，对小白友好。
 - **details**：按逻辑或操作步骤展开，分多个章节（每章一个 `{title, content}`）；有对比用表格或图。
