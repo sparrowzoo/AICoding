@@ -2,9 +2,6 @@
 # task-monitor SessionStart hook：无人值守模式（--dangerously-skip-permissions）下注入监控规则。
 # 输出 Claude Code 期望的 JSON 格式（hookSpecificOutput.additionalContext）。
 
-LOG="/tmp/task-monitor-hook.log"
-printf '%s hook-ran CLAUDE_UNATTENDED=%s\n' "$(date '+%H:%M:%S')" "${CLAUDE_UNATTENDED:-<unset>}" >> "$LOG"
-
 if [ -z "${CLAUDE_UNATTENDED:-}" ]; then
   exit 0
 fi
