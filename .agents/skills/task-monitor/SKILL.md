@@ -9,6 +9,8 @@ description: Use when the session runs unattended under --dangerously-skip-permi
 
 本 skill 仅在无人值守模式生效：会话由 `claude --dangerously-skip-permissions` 启动、并由环境变量 `CLAUDE_UNATTENDED=1` 标记，经 SessionStart hook 注入本规则。有人在看的普通会话不启用监控。
 
+触发依赖：启动脚本 `claude-by-pass-startup.sh` 导出 `CLAUDE_UNATTENDED=1`；SessionStart hook 配置在**用户全局** `~/.claude/settings.json`（检测到该变量时注入本 skill 的加载指令）。注意：`.agents/settings.json` 经 `.claude → .agents` 软链接不会被读取，hook 不能放在共享目录。
+
 核心原则：无人值守时没有逐次权限确认，AI 在**关键节点**主动提醒用户，其余时间自主推进（“让 AI 自己跑”）；失败或不可逆操作前停下等确认。
 
 ## 关键节点
