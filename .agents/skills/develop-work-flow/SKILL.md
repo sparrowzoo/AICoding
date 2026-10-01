@@ -309,7 +309,7 @@ full → lite 时，本轮引用的 R 锚点、Gherkin 场景和设计入口放�
 <a id="notify"></a>
 ## 邮件通知规则
 
-工作流在以下时机通过 `scripts/send-email.py` 向 `zh_harry@163.com` 发送通知（发件人 `server@sparrowzoo.com`，密码读环境变量 `email_password`，不写入仓库）。规则适用于工作流全部技能（req-writer、prd-writer、trd-writer、coder、e2e-validator），只在此处维护，下游技能引用本节。
+工作流在以下时机通过 [task-monitor](../task-monitor/SKILL.md) 统一维护的 `scripts/send-email.py` 向 `zh_harry@163.com` 发送通知（发件人 `server@sparrowzoo.com`，密码读环境变量 `email_password`，不写入仓库）。规则适用于工作流全部技能（req-writer、prd-writer、trd-writer、coder、e2e-validator），只在此处维护，下游技能引用本节。
 
 | 时机 | 触发条件 | 行为 |
 |---|---|---|
@@ -321,7 +321,7 @@ full → lite 时，本轮引用的 R 锚点、Gherkin 场景和设计入口放�
 发送命令（在项目根执行，正文可作参数或用 stdin 传入）：
 
 ```sh
-python3 .agents/skills/develop-work-flow/scripts/send-email.py "主题" "正文"
+python3 .agents/skills/task-monitor/scripts/send-email.py "主题" "正文"
 ```
 
 发送失败不阻塞其它已授权工作，但须在 `evidence.md` 记录发送失败与原因；「停下等待用户确认」的时机在用户确认前不继续对应部分。

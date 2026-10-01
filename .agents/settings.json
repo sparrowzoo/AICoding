@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -n \"$CLAUDE_UNATTENDED\" ]; then echo '<system-reminder>当前会话处于 --dangerously-skip-permissions 无人值守自动工作模式（CLAUDE_UNATTENDED=1）。必须加载 task-monitor skill，并在关键节点提醒用户、失败或不可逆操作前停下等待确认。</system-reminder>'; fi",
+            "shell": "bash",
+            "async": false
+          }
+        ]
+      }
+    ]
+  }
+}
