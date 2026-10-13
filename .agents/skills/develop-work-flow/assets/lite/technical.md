@@ -48,6 +48,12 @@
 <a id="api-01"></a>
 ## 接口与实现
 
+遵守develop-work-flow 的人类可读强制规范（`human-readable`）：先解释用途与理由，使用真实名称和完整类型，不用私有符号压缩字段说明。涉及数据结构时每个业务字段独占一行；通用字段引用完整定义并列实际采用的字段全名。无数据变更可删除下表。
+
+| 字段名 | 中文含义 | 完整类型 | 可空 | 默认值 | 说明（单位、枚举、约束及用途） |
+|---|---|---|---|---|---|
+| REPLACE_FIELD_NAME | REPLACE_FIELD_MEANING | REPLACE_FIELD_TYPE | REPLACE_FIELD_NULLABLE | REPLACE_FIELD_DEFAULT | REPLACE_FIELD_CONSTRAINTS |
+
 关联 R01 / S01。新增或变化的接口：REPLACE_INTERFACE（入口、输入/默认值/校验、输出/错误、副作用；无接口变化则说明实现边界）。
 
 实现文件、模块/函数职责、调用关系、允许修改的边界及关键执行步骤：REPLACE_IMPLEMENTATION
@@ -67,6 +73,8 @@ Feature: REPLACE_FEATURE
 
 <a id="test-strategy"></a>
 ## 验证与交付
+
+交付前检查正文、附录和阅读计划无需私有图例即可读懂，先修正再交付；记录实际可读性检查范围和遗留项，结构校验不能替代本项。
 
 场景绑定的真实测试入口、受影响行为的回归检查：REPLACE_TESTS
 
