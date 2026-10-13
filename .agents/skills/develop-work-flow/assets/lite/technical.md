@@ -22,7 +22,28 @@
 
 受影响调用方/角色、风险和控制措施：REPLACE_IMPACT（高风险也可使用轻量模式，但须明确说明；无需外部通知）。
 
-本次代码设计确认：REPLACE_CONFIRMATION（涉及历史功能逻辑时，即使使用 lite，也先展示具体代码设计并取得用户确认后实施；记录所确认的方案/版本、代码边界、用户结论及可定位来源。一般开发授权不能替代代码设计确认；未确认则注明待确认。独立新逻辑记录已有实施授权与关键待决项）。
+历史功能逻辑的具体代码设计确认：REPLACE_CONFIRMATION（涉及历史功能逻辑时记录已展示的方案/版本、代码边界、用户结论及可定位来源；未确认写明待确认。独立新增说明无历史影响的调查依据，不据此免除阶段授权）。
+
+<a id="stage-authorization-record"></a>
+### 阶段结论与授权记录
+
+按主工作流 `stage-authorization` 记录，lite 仅精简文档组织，不自动豁免阶段授权；不预填批准。
+
+- 当前环节及结论：REPLACE_STAGE_CONCLUSION
+- 已交付产物、可复核版本及向用户报告的位置：REPLACE_STAGE_DELIVERY
+- 用户确认时间、必要原文与可定位出处：REPLACE_STAGE_CONFIRMATION（尚未取得则写待确认）。
+- 明确批准的下一环节、范围与排除项：REPLACE_NEXT_STAGE_SCOPE
+- 待确认问题及受影响范围：REPLACE_PENDING_DECISIONS
+- 极简例外及证据：REPLACE_SIMPLE_EXCEPTION（通常写不适用；适用时逐项说明为何满足主工作流的极简、无歧义及完全确定条件）。
+
+<a id="environment-authorization-record"></a>
+### 环境操作组与授权
+
+按主工作流 `environment-authorization` 列出所需操作组；无操作时说明依据。可复用同组已确认范围，不能由环境授权推定下一环节获准。
+
+| 操作组、目标环境与用途 | 具体操作、版本/镜像及验证方式 | 数据、权限、资源与费用边界 | 清理、恢复及失败处理 | 授权状态、用户原文出处及批准范围 |
+|---|---|---|---|---|
+| REPLACE_ENVIRONMENT_GROUP_TARGET | REPLACE_ENVIRONMENT_OPERATIONS | REPLACE_ENVIRONMENT_BOUNDARIES | REPLACE_ENVIRONMENT_RECOVERY | REPLACE_ENVIRONMENT_AUTHORIZATION |
 
 <a id="api-01"></a>
 ## 接口与实现
