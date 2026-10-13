@@ -1,0 +1,8 @@
+# 格式模板，替换后才可作为验收规格。
+@R01
+Feature: REPLACE_TITLE
+  @S01
+  Scenario: REPLACE_SCENARIO
+    Given REPLACE_PRECONDITION
+    When REPLACE_ACTION
+    Then REPLACE_OBSERVABLE_RESULT

@@ -1,61 +1,29 @@
 ---
 name: e2e-validator
-description: 功能实施完毕后逐条核验代码实现是否满足业务规则。以业务规则为唯一依据，证据驱动（文件+行号），每条规则覆盖正常/边界/异常三类场景。doc-reviewer (opus) 独立审查。
-allowed-tools:
-  - Write
-  - Edit
-  - Read
-  - Bash
-  - Grep
-  - Glob
-  - Agent
-  - Skill
+description: 对照产品规则、Gherkin 场景和任务证据验证已实施功能，定位缺失绑定、失败和未验证项；用于迭代验收或完成前核验。
 ---
 
-你是高级 QA 架构师。将用户业务规则视为不可侵犯的契约，逐条验收代码实现是否忠实履行。
+共享执行规则来自 [develop-work-flow](../develop-work-flow/SKILL.md)。通过软链接加载时，先解析本文件的真实路径，仅用于定位技能包内的 skill、agents、脚本和模板；执行时不回源仓库读取设计文档。目标业务项目的需求、产品、技术、代码与证据仍是必要任务输入，应按本次范围读取。首次写入前执行主工作流的[需求分支准备](../develop-work-flow/SKILL.md#requirement-branch)，续做或阶段交接时核对并复用对应分支；只读审查不切换工作区。
 
-## 输入
+# 功能验收
 
-| 来源 | 文件 | 必须？ |
-|------|------|:--:|
-| req-writer | `./docs/{feature}/requirement.md` | 优先 |
-| prd-writer | `openspec/changes/{feature}/proposal.md` | 优先 |
-| trd-writer | `openspec/changes/{feature}/design.md` + `specs/` | ✅ |
-| coder | 代码变更 (`git diff`) | ✅ |
+先读取[公共工作流](../develop-work-flow/SKILL.md)和 [DSL 规范](../develop-work-flow/SKILL.md#dsl)，按[阶段授权](../develop-work-flow/SKILL.md#stage-authorization)核对实施批次结论、当前产物与进入独立 e2e 验收的授权；直接调用本 skill 也遵守相同门禁。环境动作另按[环境授权](../develop-work-flow/SKILL.md#environment-authorization)核对 TRD 中成组批准的对象与范围，范围内复用环境授权不替代本阶段授权。输入为目标项目 `doc/<需求目录>/` 下按 mode 维护的权威规则、场景、TRD、任务 DSL、`evidence.md` 及实际实现和测试结果：按[迭代承接](../develop-work-flow/SKILL.md#iteration)读取本轮 mode：lite 读取 technical.md，存在原文档基线时以基线加 TRD 明确变更为有效规则，Gherkin 在 TRD；full 使用产品和独立场景文件，有承接来源时核对原 TRD 编号与可复核版本；不要求 lite 补齐完整文档集。沿用 `R01`、`S01`、`T01` 等现有标识，不重新编号或另造一套场景。
 
-## 输出
+1. 检查本迭代每个已承诺场景与真实测试实现、执行命令和结果的关联。Gherkin 场景内容存在、测试代码存在或命令退出成功但没有执行目标场景，都不足以证明验收通过。
+2. 按 [RIGHT-BICEP](../develop-work-flow/SKILL.md#right-bicep) 核对适用维度的用例与证据，检查反向/交叉验证是否独立有效、错误是否实际触发、性能是否按约定条件测量；不适用理由合理且未跳过已承诺目标。运行公共 `validate`/`check`，并核实任务证据对应当前实现。自动结果只能证明它实际覆盖的行为；按风险执行必要的集成或端到端验证，不机械要求每条规则凑齐固定类别。
+3. 对失败给出规则/场景、触发条件、实际结果和证据位置；对环境限制、未执行项和不确定结论明确标注。未受影响且仍有效的测试结果可复用；发生相关修改、失败或覆盖疑点时补充执行。返工链中的旧 green/review 不得复用，按下述规则重新验证。
+4. 核对各阶段产物、结论报告、授权对象与范围的证据链，特别是 TRD 与计划交付、用户具体批准和实际实施批次的先后与范围。新旧功能及纯文档均适用阶段门禁；自主执行例外须有符合公共规则的依据，不能因产物完整、测试通过、任务独立或泛泛的实施授权倒推门禁已满足。历史功能逻辑变更无论 `lite` 或 `full`、风险高低，还应有实施前的具体代码方案确认；实际文件/函数/接口、改变与保留行为、模块职责和调用关系须与获批设计一致。已明确批准的同一对象和范围无需重复，超出范围须重新确认。验证原有调用方及约定回归用例，新旧判断需有代码分析依据；高风险改动的风险、影响角色和措施应在文档中可见，通知按公共规则执行。未经确认的实施不能用验证结果补作授权。发现问题按[返工规则](../develop-work-flow/SKILL.md#rework)，由验收方定位、协调记录者统一将被打回任务及全部直接/间接依赖任务设为 blocked，备注上游打回待复验；旧结果在 evidence.md 保留并注明失效，清除相关任务 DSL 中已失效的 green/review，不得复用。报告问题后按阶段授权交接返工与复验，不自动回滚或修复代码；独立且仍在已授权范围内的工作可以继续。
 
-```
-./docs/{feature}/e2e-report.md
-```
+核对跨轮未完任务沿用原 ID，必要 done 前置及其传递依赖闭包完整；撤出任务有确认、原因与 evidence。基线任务的引用和证据须仍匹配当前代码，备注非本轮新增成果。
 
-## 验收流程
+验收直接引用 DSL 证据及自动测试结果，规则、场景和追溯信息各自保留唯一来源。两种模式均按[全链路证据](../develop-work-flow/SKILL.md#evidence)核对并汇总同目录 `evidence.md`：每个实际环节必须有上下文、输入、输出、结果及可定位来源。检查调查/确认、需求产品（lite 合并于 TRD）、技术计划、实施测试、审查、验收与提交交付的证据是否连贯，是否对应当前版本；缺失、未执行或未验证明确列出并说明下一步，不能宣布该部分通过。人工验收和审查记录写入 evidence.md，DSL 保留任务证据摘要，长日志引用真实报告，不重复维护业务规则或任务状态。状态或证据变化后通过公共工具重新生成 `plan.md`。
 
-### Step 1：规则拆解
+## 最后验收交付
 
-从 requirement.md 提取业务规则，逐条赋予 ID（R-001, R-002...）。每个规则覆盖六类场景：正常路径、边界条件、异常路径、状态转换、规则组合、幂等性。
+按[并行归并](../develop-work-flow/SKILL.md#collaboration)由指定协调记录者根据验收结果统一更新 plan.yaml 的 status、remark、evidence 和 evidence.md；串行验收可由当前验收方担任记录者。失败、受阻或待验证事项在 remark 简述原因与下一步；未执行或未通过不能标为 done。随后按[工作流脚本入口](../develop-work-flow/SKILL.md#script-entry)依次执行 render、status、check（--project 指向项目根，--feature 填完整需求目录，如 req-r01-profile）。
 
-### Step 2：逐条验收
+必须在该需求的 `doc/req-【需求】/` 下生成独立 `task-status.md`，只显示“任务编号、名称、状态、备注”四列，列出当前计划全部任务，基线任务备注非本轮新增成果；即使未全部通过也如实交付。状态表由 DSL 生成，不手改，不增加标题、统计或证据列。详细规则见 [任务状态列表](../develop-work-flow/SKILL.md#task-status)。
 
-每个判定：**✅ 通过 / ❌ 未通过 / ⚠️ 需确认**。❌ 和 ⚠️ 必须提供证据链：
+交付 `evidence.md` 的全链路核对结论和未决项，并记录本次实际验收输入、输出及执行结果；工具校验不会代替这项核对。
 
-> **规则依据** → **实现分析**（`文件:行号`）→ **行为推断** → **差异判定**
-
-### Step 3：输出验收报告
-
-含：业务规则清单与追溯矩阵、逐规则验收详情、问题清单、风险项与改进建议。
-
-### Step 4：质量门禁
-
-```
-Skill: superpowers:verification-before-completion
-
-Agent({
-  agentType: 'doc-reviewer',
-  model: 'opus',
-  description: '审查 E2E 验收报告',
-  prompt: '审查 ./docs/{feature}/e2e-report.md。审查类型：report。检查：每条业务规则有验收结论、覆盖正常+边界+异常三类场景、❌/⚠️ 判定有完整证据链（规则原文→实现分析→行为推断→差异判定）、文件路径和行号可验证。'
-})
-```
-
-verification-before-completion（证据验证）→ doc-reviewer（独立审查），≤2 次重审。超限标注 `⚠️ 人工介入`。
+按公共规范决定是否值得本阶段内的独立审查，披露实际审查方式。最终区分通过、失败和未验证项；无发现就说明无发现，不能将未验证写成通过。交付验收报告后，按[阶段授权](../develop-work-flow/SKILL.md#stage-authorization)报告结论并取得下一环节授权；提交、push、合并、部署分别核对相应对象与范围，已明确批准的同一对象和范围不重复申请。不能临时把这些动作合并进验收阶段规避门禁。本 skill 不自动修业务代码、提交、推送、合并或部署。

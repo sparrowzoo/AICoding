@@ -1,128 +1,46 @@
 ---
 name: trd-writer
-description: 在 OpenSpec change 基础上产出 design.md、specs 和 plan.md（superpowers 格式）。executing-plans 自审 + doc-reviewer (opus) 独立审查。
-allowed-tools:
-  - Write
-  - Edit
-  - Read
-  - Bash
-  - Grep
-  - Glob
-  - Agent
-  - Skill
+description: 把产品规则和验收场景转为技术设计、可执行任务 DSL 及自动生成的阅读计划；用于实施前设计或技术方案调整。
 ---
 
-你是资深技术需求分析师，精通 OpenSpec 规范和 Superpowers Plan 方法论。在已有 proposal 的 OpenSpec change 上产出完整技术设计文档链。
+共享执行规则来自 [develop-work-flow](../develop-work-flow/SKILL.md)。通过软链接加载时，先解析本文件的真实路径，仅用于定位技能包内的 skill、agents、脚本和模板；执行时不回源仓库读取设计文档。目标业务项目的需求、产品、技术、代码与证据仍是必要任务输入，应按本次范围读取。首次写入前执行主工作流的[需求分支准备](../develop-work-flow/SKILL.md#requirement-branch)，续做或阶段交接时核对并复用对应分支；只读审查不切换工作区。
 
-## 输入
+# 技术设计与计划
 
-| 优先级 | 输入 | 场景 |
-|--------|------|------|
-| 1 | `doc/openspec/changes/{feature}/proposal.md` | 已有 PRD |
-| 2 | 用户提示词 | 直接描述需求 |
+先读取[公共工作流](../develop-work-flow/SKILL.md)和 [DSL 规范](../develop-work-flow/SKILL.md#dsl)，按[阶段授权](../develop-work-flow/SKILL.md#stage-authorization)核对上游结论、当前产物与进入技术设计的授权；直接调用本 skill 也遵守相同门禁。输入为目标项目 `doc/<需求目录>/` 中按 mode 维护的需求、产品规则、验收场景及当前授权；在已授权设计范围内补齐必需输入，不把设计授权当作实施授权。
 
-无 requirement.md 时，design.md 需额外包含「业务规则摘要」章节。
+按[分流规则](../develop-work-flow/SKILL.md#routing)维护 `technical.md` 与 `plan.yaml`，生成 `plan.md`。`mode: lite` 时 TRD 同时承载目标、规则、正文 R 锚点及有行为任务的唯一 Gherkin 代码块（`acceptance` 锚点；纯文档等无行为任务按 DSL 例外处理）；不要求 req/prd/独立场景文件。`mode: full` 时读取需求和产品文档，场景正文在 acceptance.feature。两种模式均保留任务追溯、真实测试及四列验收状态。
 
-## 输出
+## 本轮模式与跨轮承接
 
-```
-doc/openspec/changes/{feature}/
-├── proposal.md    # 已有则跳过，否则生成最小版本
-├── design.md
-├── specs/
-│   └── {capability}/spec.md
+遵循[迭代承接](../develop-work-flow/SKILL.md#iteration)：mode 由本轮意图决定，同一需求保留目录与 R/S/T 编号，新编号递增。TRD 头部标明从需求目录派生的稳定编号 `TRD-<需求目录>` 并使用 `trd` 锚点。历史引用注明迭代及可核实的 Git 基线；未提交来源按公共规则保留必要摘录与版本状态，不伪造提交或自指当前文件。
 
-doc/superpowers/plans/
-└── {feature}.md
-```
+- 大需求转本轮小改：原 REQ/PRD/场景等不删、不全文重写；TRD 只写本轮变化，引用原需求编号、文档锚点与版本。当前有效规则是原基线加 TRD 的明确变更；只保留本轮计划校验需要的 R/S/设计上下文，不复制全部旧设计。
+- 小需求扩为大需求：引用原小 TRD 的稳定编号与可复核的版本来源，协同 req-writer/prd-writer 重新编写全文档；覆盖同一路径后，历史引用不能自指当前文件。
+- 新迭代保留未完成任务的原 ID，以及计划仍需要的 done 前置任务及其传递依赖闭包。撤出任务须有用户确认、原因和 evidence；只保留本轮与必要基线，基线任务备注非本轮新增成果，引用与证据须仍匹配当前代码。
 
-## 统一工程文档目录
+## 设计深度
 
-- 默认使用**目标项目根目录下的 `doc/`**，不是操作系统 `/doc`，也不是 skill 仓库目录。用户另有明确路径时优先遵循。本约定只管理工程产物；第三方 skills/插件仍安装于家目录。
-- OpenSpec 配置、主规格、changes、archive 统一在 `doc/openspec/`；Superpowers 设计稿和计划分别在 `doc/superpowers/specs/`、`doc/superpowers/plans/`。已有 OpenSpec design 时直接引用，不复制另一份设计稿。**不建立根目录 `openspec` 软链接，也不维护第二份副本。**
-- 所有 OpenSpec CLI（包括 new、status、instructions、validate、archive）使用 `workdir=<项目根>/doc`。用工具显式指定工作目录，或先 `cd "$project_root/doc"`；不要假设上次 shell 的 cd 会保留。CLI 不会从项目根向下自动发现 `doc/openspec`。
-- 初始化前检查 `doc/openspec/` 和旧根 `openspec/`。旧目录为唯一来源且目标不存在时，统一目录请求允许整体迁移并修复引用；不只搬 proposal。两处都存在时先比较并明确权威来源，不覆盖、静默合并或生成第二份活跃 change。已有外部 store 需保留其语义；与本约定冲突时说明实际位置，不擅自本地化。
-- 新项目在项目根执行 `openspec init doc --tools none --language zh-CN --no-animation`；不是 `openspec init doc/openspec`。初始化后进入 doc，再运行其他 CLI。`--tools none` 避免在项目生成第三方 skills。
-- 写文件前从 doc 执行 `openspec list --json`，验证返回 root 正是该 doc；若落到祖先根或外部 store，先纠正选择。instructions 的 `resolvedOutputPath`/`changeDir` 是实际写入路径，不能再手工追加一个 doc。
-- **规划根与代码根分开**：OpenSpec 会把 doc 作为规划根，相关 actionContext 也可能限于 doc；这不是源码根。此 skill 只产出 PRD/TRD。下游编码流程须显式接收实际项目根与 plan 路径，在项目根运行构建/测试，不把源码创建在 doc/src；若使用有额外范围限制的官方 apply，先核对该执行流程的范围，不静默越界。
-- Superpowers 默认 `docs/superpowers/` 由本约定覆盖，调用时传最终输出路径。旧 docs 仅作存量输入查找位置；迁移既有计划保留完整内容并修复 Spec/交接引用，同名不同内容不得覆盖，不复制计划维持旧路径。
-- reviewer/下游接收实际绝对路径：`projectRoot`、`openSpecWorkingDirectory`（项目根/doc）、`changeRoot`、`proposalPath`、`designPath`、`specPaths[]`、`planPath`。计划内源码路径相对项目根，Markdown 链接按文件位置正确换算。本 skill 不自动改写其他未调用 skill，不能宣称旧硬编码消费者已全部兼容。
+`technical.md` 同时包含概要和必要的详细设计：模块职责、依赖、数据与关键流程，以及足以直接实施的公共和跨模块契约。重要契约建立 `api-01` 等显式稳定 anchor，说明签名、字段类型与校验、输出、错误、副作用及关键实现步骤。
 
-## 工作流程
+设计先核对现有代码和外部接口事实；未知信息明确标注，不把推测写成已经具备的服务。仅在存在有意义取舍时比较方案，不强制两个选项、固定篇幅、每个私有函数签名或与实现同等冗长的伪代码。完整模式引用 product.md 的规则；轻量模式在 TRD 中维护规则，按实际改动精简章节。高风险简单需求仍可轻量，但必须说明风险、影响角色和范围、控制措施；文档精简不豁免阶段授权，通知按公共规则执行。
 
-下文所有 `openspec` 命令均以 `<项目根>/doc` 为工作目录；文档及源码路径均相对项目根。
+按[环境授权](../develop-work-flow/SKILL.md#environment-authorization)在 TRD 成组列出需要评估的环境动作、对象、影响、资源或费用、隔离及恢复与验证方式，供用户与具体方案一并确认。范围内的环境授权可以复用，超出范围重新确认；环境获批不等于业务阶段获批，不因准备测试环境提前实施未授权动作。
 
-### Step 1：加载 opsx:continue
+## 测试设计
 
-```
-Skill: opsx:continue
-```
+在 technical.md 的 test-strategy 锚点下按 [RIGHT-BICEP](../develop-work-flow/SKILL.md#right-bicep) 逐维考虑正确结果、边界、反向关系、独立交叉验证、错误条件与性能。写明适用场景/测试引用或不适用理由；轻量模式可紧凑说明并合并不适用项，无需六行表；需要性能验收时给出有依据的负载、环境和阈值/基线。技术与测试引用统一使用该需求目录（如 req-r01-profile）。
 
-Codex 对应 `openspec-continue-change`。加载官方 skill 时明确 `openSpecWorkingDirectory=<项目根>/doc`，遵循上述目录约定，使用全局安装版本。
+## 确认与任务
 
-### Step 2：补齐 proposal.md（如缺失）
+新旧功能均按[阶段授权](../develop-work-flow/SKILL.md#stage-authorization)交付可审阅的具体 TRD 与计划，在实施前取得用户对该方案及实施范围的明确授权。按[接入约定](../develop-work-flow/SKILL.md#onboarding)核对用户级 grilling，对需要用户判断的决定通过 grill-me 或 grilling 分组分轮确认，随回答完善草案；不能把澄清答案自动解释为最终实施授权。涉及历史功能逻辑变更时，无论 `lite` 或 `full`、风险高低，还须按[存量确认](../develop-work-flow/SKILL.md#existing-confirmation)说明历史文件、函数/接口、当前行为、本次改动与保留行为、受影响调用方、新接口契约和关键代码设计，以及回归与必要发布恢复措施。明确每个相关模块、类/函数的职责、调用关系和允许修改的边界。记录用户结论、批准对象与范围及未决项；新旧由当前代码分析确定，一般实施授权、文档完整或“内部调整”不能替代所需的具体方案确认。
 
-```bash
-openspec new change "{feature}"
-```
+复杂新功能和复杂存量变更均须经过具体 TRD 与计划的用户评审，不能沿用“新功能直接实施”例外。自主执行例外仅按公共规则判断并留证；纯文档也遵守对应阶段门禁。已明确批准的同一对象和范围不重复确认；发现新的历史逻辑影响或超出已确认范围的设计时，先补齐可审阅方案，再确认受影响部分，不重走整条流程。按既定可独立交付边界划分阶段，不把每次工具调用当作阶段，也不临时合并阶段规避授权。
 
-### Step 3：产出 specs/
+按可验证的功能小步拆分任务，遵循跨轮依赖保留规则，在 `plan.yaml` 中维护稳定 Task ID、需求/场景/设计引用、项目相对文件路径、依赖和验证命令；字段、状态、备注和证据格式以 DSL 规范为唯一来源；remark 用于最终四列任务状态列表的简短说明。验证命令应运行真实测试，并使 Gherkin 场景可追溯到测试实现与结果。合理的 TDD 例外要说明原因与替代验证，不能用环境故障伪造 RED。
 
-```bash
-openspec instructions specs --change "{feature}" --json
-```
+并行规划按[归并规则](../develop-work-flow/SKILL.md#collaboration)由一名协调记录者写 plan/evidence 和生成视图，其他执行者回传结果。由记录者运行公共工具 `workflow.mjs validate` 和 `render`，核对生成的阅读计划与 DSL 一致；不可手改 `plan.md`。工具位置、依赖准备及参数见 [工作流脚本入口](../develop-work-flow/SKILL.md#script-entry)。
 
-每个 capability 一个 spec 文件。覆盖：模块结构、类/方法清单、状态机、校验规则、配置项。
+复杂或高风险设计按公共规范安排本阶段必要的独立审查；没有相应工具时如实自审，不伪称独立通过。交付实际项目根、feature、TRD 与 DSL 及阅读计划、关键结论、取舍、风险、未决项、校验结果和授权状态。报告后按阶段门禁等待用户明确批准当前具体方案与实施范围，再交给 coder；文档生成、校验通过或内部审查均不能替代用户授权。本 skill 只产出设计计划，不自动实施、提交、推送或部署。
 
-### Step 4：产出 design.md
-
-```bash
-openspec instructions design --change "{feature}" --json
-```
-
-覆盖：Context / Decisions（≥2 选项对比）/ Data Model / API/Contracts / Flows / Risks。
-
-### Step 5：产出 plan.md + 自审
-
-产出 `doc/superpowers/plans/{feature}.md`，遵循 Superpowers Plan 格式。调用 `superpowers:writing-plans` 时显式指定该输出路径；计划头部 `Spec` 指向同一 change 的实际 design/specs 路径，源码任务路径仍相对项目根。
-
-```
-Skill: superpowers:executing-plans
-```
-
-仅借用该 skill 的计划审查标准进行只读自审，不执行任务、不创建实施 worktree、不提前编码。批判性自审：每步可执行？路径精确？无占位符？TDD 驱动？
-
-### Step 6：验证
-
-```bash
-openspec status --change "{feature}"
-```
-
-### Step 7：质量门禁
-
-并行调 doc-reviewer (opus) 独立审查三类文档：
-
-```
-Agent({
-  agentType: 'doc-reviewer',
-  model: 'opus',
-  description: '审查 design.md',
-  prompt: '项目根：{projectRoot}。审查实际绝对路径 {designPath}。审查类型：design。检查：Decisions ≥2 选项对比、接口契约完整（签名+参数+返回值+异常）、风险有缓解措施、与 proposal Capability 对齐。'
-})
-
-Agent({
-  agentType: 'doc-reviewer',
-  model: 'opus',
-  description: '审查 specs/',
-  prompt: '项目根：{projectRoot}。审查实际绝对路径列表 {specPaths} 中的全部 spec 文件。审查类型：spec。检查：每个 Capability 有对应 spec、每个 Requirement 下 ≥1 Scenario、接口签名完整、状态机完整、校验规则明确。'
-})
-
-Agent({
-  agentType: 'doc-reviewer',
-  model: 'opus',
-  description: '审查 plan.md',
-  prompt: '项目根：{projectRoot}。审查实际绝对路径 {planPath}。审查类型：plan。检查：每个 Task 有精确文件路径、每 Step 可执行含代码块、无 TBD/TODO/占位符、粒度合理（2-5分钟/步）。'
-})
-```
-
-≤2 次重审。超限标注 `⚠️ 人工介入`。
+按[全链路证据](../develop-work-flow/SKILL.md#evidence)记录到同目录 `evidence.md`，并行时交由协调记录者归并：记录上下文、实际需求/代码/确认输入、技术与计划输出、校验结果和证据位置。lite 将需求与产品记录合并于技术阶段，仍链接 TRD 内对应事实；仅规划时将实施、测试和验收标为未执行。

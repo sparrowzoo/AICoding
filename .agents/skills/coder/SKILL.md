@@ -1,93 +1,40 @@
 ---
 name: coder
-description: 承接 trd-writer 技术文档，按 SDD 模式派发 implementer 子 Agent 逐 Task 编码，Skill 做 spec/代码质量审查，code-reviewer (opus) 独立审查。禁止自行编码。
-allowed-tools:
-  - Read
-  - Bash
-  - Grep
-  - Glob
-  - Agent
-  - Skill
-  - TodoWrite
+description: 执行已获授权的任务 DSL，按功能小步完成测试、实现、证据和提交；用于开始或继续编码，不绑定实现工具或代理模型。
 ---
 
-你是资深工程师，精通 Java/Python/Spring Cloud Alibaba/AI Agent 技术栈。按 **Subagent-Driven Development** 模式派发 implementer 子 Agent 逐 Task 编码，编排审查流程。
+共享执行规则来自 [develop-work-flow](../develop-work-flow/SKILL.md)。通过软链接加载时，先解析本文件的真实路径，仅用于定位技能包内的 skill、agents、脚本和模板；执行时不回源仓库读取设计文档。目标业务项目的需求、产品、技术、代码与证据仍是必要任务输入，应按本次范围读取。首次写入前执行主工作流的[需求分支准备](../develop-work-flow/SKILL.md#requirement-branch)，续做或阶段交接时核对并复用对应分支；只读审查不切换工作区。
 
-## 核心规则
+# 按计划实施
 
-1. **禁止自行编码** — Write/Edit 已移除，代码由 implementer 子 Agent 完成
-2. **只保留 doc-reviewer 和 code-reviewer 为 Agent** — 其余审查用 Skill
-3. **每个 Task 一个独立子 Agent** — 干净上下文
+先读取[公共工作流](../develop-work-flow/SKILL.md)和 [DSL 规范](../develop-work-flow/SKILL.md#dsl)，再读目标项目的 `doc/<需求目录>/plan.yaml`。DSL 是任务、状态和证据的权威来源，`plan.md` 只供阅读，禁止手工维护。按本轮 mode 与[迭代承接](../develop-work-flow/SKILL.md#iteration)读取权威来源：lite 读取 TRD，存在历史基线时一并读取其引用的原需求/文档，当前有效规则为基线加本轮明确变更；full 读取产品、场景及设计文件。按任务引用读取技术契约，不把规划目录当作源码根，也不为 lite 补建完整文档集。
 
-## 工具箱
+## 开始条件
 
-| 工具 | 用途 | 何时用 |
-|------|------|--------|
-| `Agent: general-purpose` | 派发 implementer 子 Agent 编码 | 每个 Task |
-| `Skill: superpowers:subagent-driven-development` | SDD 流程纪律 | 启动时 |
-| `Skill: superpowers:verification-before-completion` | spec 合规审查 | 每个 Task 编码后 |
-| `Skill: simplify` | 代码质量审查 | spec 合规通过后 |
-| `Agent: code-reviewer (opus)` | 独立代码审查 | 全部 Task 完成后 |
+先按[阶段授权](../develop-work-flow/SKILL.md#stage-authorization)核对具体 TRD、计划与本实施批次的用户授权，直接调用本 skill 也遵守相同门禁。读取分流依据和影响说明，不凭需求名称决定是否询问；复杂新旧功能均须先交付具体方案并获批准，文档完整、内部审查或泛泛的“开始开发”不替代所需授权。自主执行例外仅按公共规则判断并留证，不以新功能、纯文档、基础代码或并行任务绕过。涉及历史功能逻辑变更时，无论 `lite` 或 `full`、风险高低，还须按[存量确认](../develop-work-flow/SKILL.md#existing-confirmation)核对代码位置、模块/函数职责、调用边界、接口与关键实现、改变与保留行为及回归范围。缺少确认时报告缺口，按已授权的调查设计范围补齐可审阅方案，再通过 grill-me 或 grilling 取得必要决定；不能先修改受影响逻辑。已明确批准的同一对象和范围不重复确认，超出范围的新设计再确认。仅获工作流或文档修改授权时，不自动实施其中的业务案例。
 
-## 输入
+本实施批次按既定可独立交付边界确定，包含对应任务的 RED/GREEN、必要自审或独立检查与证据整理；不把每次工具调用当作阶段，也不临时合并批次或把独立 e2e 验收、提交纳入编码来规避门禁。开始环境动作前按[环境授权](../develop-work-flow/SKILL.md#environment-authorization)核对 TRD 中成组批准的对象与范围；范围内复用环境授权，超出范围先确认，环境获批不替代业务阶段授权。
 
-| 文档 | 路径 |
-|------|------|
-| design.md | `openspec/changes/{feature}/design.md` |
-| specs/ | `openspec/changes/{feature}/specs/` |
-| plan.md | `docs/superpowers/plans/{feature}.md` |
+按[工作流脚本入口](../develop-work-flow/SKILL.md#script-entry)运行 `validate`，并核对工作区现状。在已授权批次内按依赖选择任务，避免覆盖用户或其他执行者的未提交修改；可自行编码，适合并行时再分工，不要求每个 Task 固定派发一个代理。主代理与子代理执行同一门禁，任务独立不等于已获下一阶段授权。
 
-## 工作流
+跨轮任务只保留本轮与必要基线，核对未完原 ID、done 前置的传递依赖闭包及其当前有效证据；基线任务不计本轮新增成果。发现撤出无确认或依赖缺口，先交回规划修正，不自行删除依赖。
 
-```
-Skill: superpowers:subagent-driven-development
-  │
-  ├─ 读取 plan.md → 提取 Task → TodoWrite
-  │
-  └─ 对每个 Task：
-       │
-       ├─ Agent({
-       │     agentType: 'general-purpose',
-       │     description: '实现 Task N: {Component}',
-       │     prompt: '
-       │       按 TDD 实现以下 Task，完成后 git commit。
-       │       功能目标: {从 plan.md Goal 提取}
-       │       技术栈: {从 plan.md Tech Stack 提取}
-       │       Task 详情: {Task 原文含 Step/代码块}
-       │       相关 Spec: {从 specs/ 提取}
-       │       相关设计: {从 design.md 提取 API 签名}
-       │       禁止调用 doc-reviewer / code-reviewer。
-       │     '
-       │   })
-       │     DONE → 审查 / ❌ → 修复或升级
-       │
-       ├─ Skill: superpowers:verification-before-completion
-       │     spec 合规：每个 Requirement 有实现？Scenario 有测试覆盖？
-       │     ❌ → implementer 修复
-       │
-       ├─ Skill: simplify
-       │     代码质量：命名/结构/重复/魔法数字/断言精确
-       │     ❌ → implementer 修复
-       │
-       └─ TodoWrite 标记完成
-  │
-  ├─ Agent({
-  │     agentType: 'code-reviewer',
-  │     model: 'opus',
-  │     description: '独立代码审查',
-  │     prompt: '
-  │       审查本次变更的全部代码。
-  │       审查维度: correctness + architecture + cleanliness + test-quality。
-  │       设计文档: openspec/changes/{feature}/design.md
-  │       Spec 文件: openspec/changes/{feature}/specs/
-  │       变更文件: {git diff --stat 输出}
-  │     '
-  │   })
-  │     ❌ → implementer 修复（≤2 次）
-  │
-  └─ Skill: superpowers:finishing-a-development-branch
-```
+按[并行归并](../develop-work-flow/SKILL.md#collaboration)指定一名协调记录者维护 plan/evidence 和生成视图；串行由当前执行者负责。下面的状态、证据和视图更新由该记录者执行，子执行者只回传任务结果与证据。
 
-## 审查循环
+## 小步执行
 
-每阶段 ≤2 次重审。超限标注 `⚠️ 人工介入`。
+1. 将任务标记为 `doing`，确认其需求、场景及接口依据。按技术文档的 [RIGHT-BICEP](../develop-work-flow/SKILL.md#right-bicep) 测试设计实施适用用例，核对精确断言、独立参照和错误注入；性能验证使用已约定条件。先把对应场景绑定到真实测试；运行测试，记录确由目标行为缺失引起的 RED。
+2. 实施足够满足本任务的修改，运行计划指定的验证及受影响检查，记录命令、结果和可定位证据。GREEN 必须来自真实执行，不能用静态阅读或模拟成功代替。
+3. 如实维护 RED/GREEN/review 证据；非适用 TDD 的任务按公共规范记录 `tdd_exception` 及替代验证。环境阻塞与业务失败分开记录，未完成验证不能标记 `done`。
+4. 按风险选择自审或独立审查；发现问题修复后复验受影响部分。复杂或高风险工作有可用独立执行能力时采用独立视角；没有则披露自审与限制。
+5. 完成本任务所需检查后按公共规范维护状态和证据，重新生成阅读计划；若 task-status.md 已存在，同步运行 status 更新状态列表，再运行公共 check 检查生成视图一致性。真实证据与完成条件仍按公共规范核对；测试通过不自动授权提交。
+
+按[返工规则](../develop-work-flow/SKILL.md#rework)处理验收打回：由验收方定位，协调记录者把被打回任务及所有直接/间接依赖它的任务统一设为 blocked，备注上游打回待复验；旧结果在 evidence.md 保留并标失效，清除相关任务 DSL 中已失效的 green/review，不作为当前有效证据。返工按阶段授权确认的对象和范围实施，再按依赖顺序恢复并复验；不自动回滚代码，独立且仍在已授权批次内的工作可以继续。
+
+同一任务连续两次失败或被打回时，按[邮件通知规则](../develop-work-flow/SKILL.md#notify)发送提醒并停下等待用户确认，其余独立任务继续。
+
+实施中发现新的历史逻辑影响、超出已确认代码方案的新设计，或业务/范围/外部契约变化时，暂停受影响任务，按已授权范围补齐可审阅的具体方案并报告，再请用户确认；确认前不得实施变化部分，其余独立且仍在本批次授权内的工作可以继续。已确认方案和批次范围内的实施细节可自主完成，必要时同步 DSL 和技术设计；“内部实现调整”不是豁免具体设计确认的理由。不要扩大到无关重构，不自动提交、push、合并或部署。
+
+本批次完成后报告完成与未完成 Task、代码范围、测试及审查结论、剩余阻碍与下一环节，按[阶段授权](../develop-work-flow/SKILL.md#stage-authorization)取得授权后才能进入下一批实施、独立 e2e 验收或提交；已明确批准的同一对象和范围不重复申请。获准提交时再使用 Conventional Commits 与 `Task` trailer，按公共追溯规则精确匹配完整任务值；提交、push、合并、部署分别核对对应授权。不能用「代码已写」代替「功能已验证」，也不能用验证通过代替阶段授权。
+
+每个任务交接前按[全链路证据](../develop-work-flow/SKILL.md#evidence)向协调记录者交接结果，统一更新同目录 `evidence.md`，记录实施上下文、实际输入与代码输出、RED/GREEN 和审查结果及其证据位置，关联 T 编号。任务状态与证据摘要仍维护在 DSL，完整日志与既有提交用引用连接；不得以计划命令代替执行记录。

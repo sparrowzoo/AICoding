@@ -1,61 +1,23 @@
 ---
 name: req-writer
-description: 将模糊业务诉求转化为结构化业务需求文档。使用 gstack skills 协作生成，doc-reviewer (opus) 独立审查。下游对接 prd-writer。
-allowed-tools:
-  - Write
-  - Edit
-  - Read
-  - Grep
-  - Agent
-  - Skill
+description: 将业务诉求整理为需求文档，明确问题、目标、范围和稳定需求标识；用于新需求梳理或需求调整，下游交接产品设计。
 ---
 
-你是一位资深业务分析师。将模糊的业务诉求转化为结构化的 **业务需求文档（requirements.md）**。
+共享执行规则来自 [develop-work-flow](../develop-work-flow/SKILL.md)。通过软链接加载时，先解析本文件的真实路径，仅用于定位技能包内的 skill、agents、脚本和模板；执行时不回源仓库读取设计文档。目标业务项目的需求、产品、技术、代码与证据仍是必要任务输入，应按本次范围读取。首次写入前执行主工作流的[需求分支准备](../develop-work-flow/SKILL.md#requirement-branch)，续做或阶段交接时核对并复用对应分支；只读审查不切换工作区。
 
-## 管道定位
+# 需求编写
 
-```
-业务方(原始诉求) → 你(requirement.md) → prd-writer(proposal.md) → trd-writer(design+specs+plan) → coder(编码) → e2e-validator(验收)
-```
+开始前读取[公共工作流](../develop-work-flow/SKILL.md)，按[阶段授权](../develop-work-flow/SKILL.md#stage-authorization)核对本次需求编写的对象、范围与授权；直接调用本 skill 也遵守相同门禁。当前项目约定与用户明确要求优先；进入本阶段不自动授权产品设计、技术设计或业务实施。自主执行例外仅按公共规则判断并留证，不以新功能或纯文档为由绕过。
 
-## 输出
+先按[分流规则](../develop-work-flow/SKILL.md#routing)确定本轮文档深度，并遵循[迭代承接](../develop-work-flow/SKILL.md#iteration)。轻量模式由 [trd-writer](../trd-writer/SKILL.md)维护本轮 TRD；已有 REQ/PRD 等保留作基线，不删除或为小改全文重写。以下产物规则用于完整模式。
 
-```
-./docs/{feature}/requirement.md
-```
+在目标项目维护 `doc/<需求目录>/requirement.md`，同一需求继续使用原目录。lite 转 full 时重新编写完整需求文档，引用原 `TRD-<需求目录>` 编号与可核实的基线版本（未提交来源按公共规则留证）；保留已有 R 编号，新编号递增，不把同路径当前文件当历史来源。其余完整模式按实际范围原位更新。本文只负责问题、目标、范围、约束及稳定的 `R01` 等需求 anchor；行为规则交给 `product.md`，场景交给 `acceptance.feature`，避免重复事实。
 
-- `{feature}` 用英文 kebab-case，≤4 单词
+1. 读取用户本轮诉求、适用项目约定及现有需求。区分已确认事实、假设和待决问题；不把参考案例变成当前功能。
+2. 先检查现有 doc/ 目录，为新用户需求分配项目内唯一、稳定的 req-rNN-name 目录（如 req-r01-profile）；同一需求迭代沿用原目录。目录编号与内部 R01 子项标识的区别见公共规范。按可独立交付的功能切出本次小迭代，说明要解决的问题、可观察的目标及范围外事项。沿用已有需求标识，不因排序变化重编号。
+3. 在已授权需求阶段内调查事实、形成可审阅草案，按关键决定的依赖分轮澄清，不把未确认假设写成用户决定。新旧功能均遵守阶段授权；涉及历史功能逻辑变更时，无论 `lite` 或 `full`、风险高低，还须按[存量确认](../develop-work-flow/SKILL.md#existing-confirmation)说明改变与保留范围。将需求层结论交接至 TRD 的具体代码与接口方案，需求确认不替代具体方案的实施授权。已明确批准的同一对象和范围不重复询问，超出范围的决定重新确认。
+4. 核对每条需求能在下游关联行为和验收，不预先规定技术实现或编造外部能力。复杂或高风险内容按公共规范选择独立审查；普通内容完成自审即可，如实说明审查方式。
 
-## 工作流程
+交接实际项目根、feature、需求文件、结论和仍影响设计的未决问题，明确下一阶段为产品设计；按[阶段授权](../develop-work-flow/SKILL.md#stage-authorization)报告后等待用户授权，再交给 prd-writer。澄清决定时按[接入约定](../develop-work-flow/SKILL.md#onboarding)核对用户级 grilling，分轮取得共识；缺少非必需工具不阻断已授权写作，但不能略过用户决定或伪称调用了其他 skill、通过了独立审查。阶段边界按公共规则确定，不把每次工具调用当作阶段，也不临时合并需求和产品阶段绕过授权。
 
-### Step 1：确定 feature 名称
-
-从用户描述提取。不确定则主动询问。
-
-### Step 2：gstack skills 协作生成
-
-不要自己写内容。按顺序委托 gstack skills 协作：
-
-```
-Skill: office-hours       → Builder 模式脑暴 → 问题定义、用户画像、场景
-Skill: plan-ceo-review    → 高层战略视角审视 → 范围边界、优先级、风险
-Skill: plan-eng-review    → 工程可行性审查 → 架构建议、测试矩阵
-Skill: plan-design-review → 质量评分 → AI 内容质量检查
-```
-
-### Step 3：合成 requirements.md
-
-将 skills 产出合成为 `./docs/{feature}/requirement.md`。
-
-### Step 4：质量门禁
-
-```
-Agent({
-  agentType: 'doc-reviewer',
-  model: 'opus',
-  description: '审查需求文档',
-  prompt: '审查 ./docs/{feature}/requirement.md。审查类型：requirement。检查：正确性、完整性、可验证性、术语一致性、异常场景覆盖。'
-})
-```
-
-独立审查 requirements.md，≤2 次重审。超限标注 `⚠️ 人工介入`。
+每次交接前按[全链路证据](../develop-work-flow/SKILL.md#evidence)记录到需求目录的 `evidence.md`；并行时按[归并规则](../develop-work-flow/SKILL.md#collaboration)只回传给指定协调记录者：记录本阶段上下文、诉求与确认输入、需求产物、实际结果及来源，缺失资料标为未核实。
