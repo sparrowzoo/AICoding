@@ -1,102 +1,195 @@
-# REPLACE_TITLE · 技术设计
+# TRD：技术需求规格说明书模板
 
-<a id="trd"></a>
-文档编号：REPLACE_TRD_ID（按 `TRD-<需求目录>` 派生，跨迭代保持稳定）。
 
-本轮迭代与来源：REPLACE_ITERATION_SOURCE（原需求编号、文档路径/锚点、原 TRD 编号及可复核版本；首次需求注明无前序来源）。
 
-小需求扩大时，引用原小需求 TRD 文档编号和版本，承接仍有效事实并重新编写本轮全文档；不以当前同路径文件冒充原版本。
+# TRD：项目名称 
 
-## 分流、影响与确认
+技术需求规格说明书（TRD） 
 
-文档深度及意图识别依据：REPLACE_DOCUMENT_DEPTH（由 AI 根据业务规则、协作关系与实现复杂度判断简单/复杂，对应 lite/full）。
 
-逻辑分类与依据：REPLACE_LOGIC_CLASSIFICATION（由 AI 分析当前代码、调用关系与测试，判定新需求/老需求并列出证据；不按需求名称分类）。
 
-| 历史代码位置（文件、函数/接口） | 当前行为与依据 | 本次改变及必须保留的行为 |
-|---|---|---|
-| REPLACE_EXISTING_LOCATION | REPLACE_CURRENT_BEHAVIOR | REPLACE_CHANGE_BOUNDARY |
+2022年09⽉01⽇ 需求发起⼈：项目发起人 产品经理：产品经理姓名
 
-受影响调用方、角色、风险及措施：REPLACE_IMPACT（在文档说明，无需外部通知）。
+# ⼀\. ⽅案概述 
 
-历史功能逻辑的具体代码设计确认：REPLACE_CONFIRMATION（涉及历史功能逻辑时记录已展示的方案/版本、代码边界、用户结论及可定位来源；未确认写明待确认。独立新增说明无历史影响的调查依据，不据此免除阶段授权）。
+## 1\.1 背景介绍 
 
-<a id="stage-authorization-record"></a>
-### 阶段结论与授权记录
+## 1\.2 价值  
 
-按主工作流 `stage-authorization` 记录当前实际状态；本节不预填批准，不以文档齐全、审查通过或一般开发授权代替用户确认。
+架构价值 
 
-- 当前环节及结论：REPLACE_STAGE_CONCLUSION
-- 已交付产物、可复核版本及向用户报告的位置：REPLACE_STAGE_DELIVERY
-- 用户确认时间、必要原文与可定位出处：REPLACE_STAGE_CONFIRMATION（尚未取得则写待确认）。
-- 明确批准的下一环节、实施范围与排除项：REPLACE_NEXT_STAGE_SCOPE（不得从启动确认或先前环节授权推定）。
-- 待确认问题及受影响范围：REPLACE_PENDING_DECISIONS
-- 极简例外及证据：REPLACE_SIMPLE_EXCEPTION（通常写不适用；适用时逐项说明为何满足主工作流的极简、无歧义及完全确定条件，不能仅以新增功能或 full/lite 作为依据）。
+商业价值 
 
-<a id="environment-authorization-record"></a>
-### 环境操作组与授权
+## 1\.3 最终⽬标 
 
-按主工作流 `environment-authorization` 列出本方案所需环境操作组；无需环境操作时说明依据。已获确认的同组同范围操作可以复用，环境授权不能扩张阶段授权。
+### 现状 
 
-| 操作组、目标环境与用途 | 具体操作、版本/镜像及验证方式 | 数据、权限、资源与费用边界 | 清理、恢复及失败处理 | 授权状态、用户原文出处及批准范围 |
-|---|---|---|---|---|
-| REPLACE_ENVIRONMENT_GROUP_TARGET | REPLACE_ENVIRONMENT_OPERATIONS | REPLACE_ENVIRONMENT_BOUNDARIES | REPLACE_ENVIRONMENT_RECOVERY | REPLACE_ENVIRONMENT_AUTHORIZATION |
+### 新版迭代说明
 
-## 概要设计
+解决核⼼问题 
 
-改动目标与范围：[产品定义](product.md)。
+## 1\.4 相关系统TRD 
 
-模块、类/函数的职责，允许修改与必须保留的边界，以及依赖、数据/调用关系：REPLACE_MODULE_FLOW
+⽆ 
 
-重要取舍及原因：REPLACE_DECISION
+## 1\.5 术语和缩略语 
 
-## 详细设计
 
-按develop-work-flow 的人类可读强制规范（`human-readable`）先解释用途、行为和设计理由，再给出技术定义；本规则也适用于链接的附录。不要使用私有字段类型、空值、默认值或通用字段组合编码。
 
-涉及数据结构时，每张表先说明一条记录的含义和生命周期，再按下表逐字段填写；通用字段可引用一处完整定义，但必须列出实际采用的字段全名。无数据结构变更时删去此表。
+# ⼆、系统需求  
 
-| 字段名 | 中文含义 | 完整类型 | 可空 | 默认值 | 说明（单位、枚举、约束及用途） |
-|---|---|---|---|---|---|
-| REPLACE_FIELD_NAME | REPLACE_FIELD_MEANING | REPLACE_FIELD_TYPE | REPLACE_FIELD_NULLABLE | REPLACE_FIELD_DEFAULT | REPLACE_FIELD_CONSTRAINTS |
+# 三、总体⽅案 
 
-<a id="api-01"></a>
-### api-01 · REPLACE_INTERFACE
+## 3\.1 全景架构图
 
-关联：[R01](product.md#R01)，[S01](acceptance.feature)。
+根据PRD构建全景业务依赖图。\`\`\`*mermaid 生成*
 
-入口与签名：REPLACE_SIGNATURE
+## 3\.2 内部模块依赖图
 
-输入字段/类型/校验/默认值：REPLACE_INPUT
+### 结构风格 Java/Maven 整洁架构约束、
 
-输出与错误：REPLACE_OUTPUT_ERROR
+编译依赖
 
-副作用与状态：REPLACE_EFFECT
+箭头 \`A → B\` 表示 A 依赖 B；项目内部编译依赖以此图及下述补充边为准。\`dao\-impl\` 仅代指选定的 \`dao\-sparrow\` 或 \`dao\-mybatis\`，不要求创建同名模块。
 
-实现位置与关键步骤：REPLACE_IMPLEMENTATION
+```mermaid
+flowchart TB
+    MAIN["main-spring-boot：启动与装配"]
+    ADAPTER["adapter：HTTP 接入"]
+    DOMAIN["domain：规则、用例与业务接口"]
+    PROTOCOL["protocol：稳定业务契约"]
+    INFRA["infrastructure：业务接口的技术实现"]
+    DAOIMPL["dao-impl：选定的 DAO 实现"]
+    DAOAPI["dao-api：持久化接口"]
+    PO["po：数据库映射对象"]
+    MAIN --> ADAPTER
+    MAIN --> INFRA
+    MAIN --> DAOIMPL
+    ADAPTER --> DOMAIN
+    DOMAIN --> PROTOCOL
+    INFRA --> DOMAIN
+    INFRA --> DAOAPI
+    DAOIMPL --> DAOAPI
+    DAOAPI --> PO
+```
 
-仅在需要时补充并发、事务、幂等与重试；无公共接口变更时可将此节改为实现章节。
+- 图为基本关系；源码直接使用其他模块类型时，须显式声明对应 Maven 依赖，不依赖偶然获得的传递依赖。
 
-<a id="test-strategy"></a>
-## 测试设计（RIGHT-BICEP）
+- 允许补充的直接依赖：adapter → protocol、infrastructure → po / protocol、选定的 DAO 实现 → po；启动代码直接引用接口时，声明 main\-spring\-boot → domain / dao\-api。
 
-每个维度填写适用的场景/测试引用，或简短的不适用理由；不重复抄写场景全文。纯文档变更可用一句说明替代此表。
+- 禁止 domain → infrastructure / dao\-api / po、adapter → infrastructure / DAO 以及循环依赖；不得用反射、静态工具类或公共模块绕过边界。
 
-| 维度 | 场景/测试与预期断言，或不适用理由 |
+- protocol、po 不依赖其他项目内部业务模块；这不代表没有外部库依赖，也不代表领域层完全无框架依赖。按实际用途审查外部依赖，避免 Web、ORM、数据库细节进入业务契约。
+
+- dao\-sparrow 与 dao\-mybatis 是互不依赖的并列实现，可以只保留一种；同一套 DAO 接口默认只装配一种实现。
+
+### 代码归属
+
+|模块|职责与边界|
 |---|---|
-| Right 正确结果 | REPLACE_RIGHT |
-| Boundary 边界 | REPLACE_BOUNDARY |
-| Inverse 反向关系 | REPLACE_INVERSE |
-| Cross-check 独立交叉验证 | REPLACE_CROSS_CHECK |
-| Error condition 错误条件 | REPLACE_ERROR |
-| Performance 性能 | REPLACE_PERFORMANCE |
+|protocol|稳定请求参数、查询条件、结果 DTO、协议枚举；不含业务实现、PO、HTTP/Servlet、ORM 或数据库类型。|
+|domain|领域模型、业务规则、用例服务、Repository/Gateway 接口；不含 Controller、SQL、Mapper、PO、DAO 或基础设施实现。|
+|adapter|Controller、格式与必填校验、协议与领域对象组装、响应及异常映射；不承载核心业务规则，不直接访问 DAO 或基础设施实现。|
+|infrastructure|Repository/Gateway 实现、领域对象与 PO 转换、外部服务与缓存适配；通过 dao\-api 访问持久化，不绑定具体 DAO 实现，不重复实现业务规则。|
+|dao\-api|使用 PO 的持久化查询与写入接口、必要的存储查询条件；不含业务编排，不依赖 domain 或具体 ORM 实现。|
+|dao\-sparrow / dao\-mybatis|DAO 实现、SQL、Mapper、ORM 配置与数据操作；不含业务规则或 Controller，不依赖 domain 或 infrastructure。|
+|po|表映射对象、字段、主键与持久化元数据；不含领域业务行为。|
+|main\-spring\-boot|启动、环境配置、扫描范围、实现绑定及运行依赖；不含业务规则，其他业务模块不得反向依赖它。|
+|bom|依赖版本；作为公共父 POM 时可提供约定的公共构建配置。不含业务类，版本管理不代替实际依赖声明。|
 
-测试入口与场景绑定：REPLACE_TEST_BINDING
+- DTO 表达输入输出，领域对象表达业务状态与规则，PO 表达数据库记录；禁止直接向客户端返回 PO。
 
-若适用性能验证，在上表注明负载、环境、指标及阈值/基线的依据；没有依据则列为待确认。
+- adapter 组装协议与领域对象，infrastructure 转换领域对象与 PO；简单用例可直接使用稳定协议契约，不强制复制等价对象。
 
-## 交付注意事项
+- 生产代码放在各模块 src/main/java；保留已有生成器要求的 PO 命名、Mapper 布局等，不为形式统一进行无关重命名。
 
-交付前逐节检查正文、附录及阅读计划：无需私有图例即可理解用途、行为、字段与理由；发现不可读内容先修正。记录实际检查范围和遗留项，结构校验成功不代表可读性通过。
+### 接口实现与运行时调用
 
-必要的兼容、发布条件及失败恢复措施：REPLACE_DELIVERY
+- **接口归属与实现：**domain 定义 Repository/Gateway，infrastructure 实现；dao\-api 定义 DAO，选定的 DAO 模块实现。业务接口与持久化接口不是同一接口。
+
+- Repository 使用业务语义，输入输出为领域模型或稳定业务契约，不暴露 PO、Mapper、SQL、ORM 专有分页对象；DAO 使用 PO 表达存储数据。
+
+- **典型持久化请求的运行时调用：**Controller → domain 用例服务 → Repository 接口对应的实现 → DAO 接口对应的实现 → 数据库；结果沿调用链返回。这是调用关系，不是模块编译依赖。
+
+- 用例服务通过业务接口访问外部能力；Repository 实现访问持久化时只引用 DAO 接口，并完成对象转换。main\-spring\-boot 绑定两类接口的实现，不是每次请求经过的业务节点。
+
+
+
+## 3\.3\. 核心业务流程图及类图
+
+# 四、系统依赖 
+
+4\.1、 
+
+# 五、⻛险 
+
+# 六、运⾏设计 
+
+## 6\.1  接口设计 具体到字段
+
+### 6\.2 数据库表结构详细设计 具体到字段
+
+
+
+# 七 特性设计 
+
+## 7\.1 索引性能 
+
+## 7\.2 安全性 
+
+⽆
+
+## 7\.3 可靠性 
+
+## 7\.4 监控与报警列表 
+
+# ⼋、部署⽅案 
+
+## 8\.1 灰度⽅案 
+
+
+
+## 8\.2 上线⽅案 
+
+
+
+## 8\.3 回滚⽅案 
+
+# 九 附录 
+
+1\. 编程规范 
+
+2\. ⽇志设计 
+
+3\. 存储设计 
+
+### 表结构设计规范（MySQL）
+
+
+\- 自有业务表表名以 \`t\_\` 开头，表名和字段名采用小写 snake\_case；业务域前缀按项目统一，例如客服可采用 \`t\_cs\_\`。表和字段使用明确注释，说明含义、单位及枚举值。
+\- 按每张表的业务生命周期选用下面的通用字段，不要求机械添加全部七项；设计中列明采用/不采用及理由。选用某字段时，其字段名、类型、UNSIGNED、长度、非空约束、默认值和注释均与模板一致，不自行换成 create\_time、datetime 或其他变体。
+
+通用字段如下，原则上每张表都要有，但要按实际使用情况而定，如果只有新增无修改的场景，不要强制加modify 相关字段，如果使用请严格按该命名执行
+
+```SQL
+`create_user_id` bigint UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
+`gmt_create` bigint UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+`modified_user_id` bigint UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
+`gmt_modified` bigint UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+`create_user_name` varchar(64) NOT NULL DEFAULT '' COMMENT '创建人',
+`modified_user_name` varchar(64) NOT NULL DEFAULT '' COMMENT '更新人',
+`status` tinyint(1) NOT NULL DEFAULT 1 COMMENT '状态：1=启用 0=禁用'
+```
+
+
+
+4\. 交接⽂档 
+
+5\. 项⽬排期 
+
+|任务|开发者|开始时间|结束时间|PD\(人天\)|
+|---|---|---|---|---|
+|商品新增|张三|2022\-09\-01|2022\-09\-02|1|
+
+6\. 历次沟通意⻅汇总表 
+

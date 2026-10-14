@@ -1,4 +1,5 @@
-# 与同目录 technical.md 配合；替换占位符，验证命令使用项目实际入口。
+# 与目标需求目录的 technical.md 配合；TRD 使用技能包内 ../feature/technical.md 的共用模板。
+# 替换占位符，验证命令使用项目实际入口。
 schema: 1
 mode: lite
 feature: REPLACE_REQUIREMENT_DIR
