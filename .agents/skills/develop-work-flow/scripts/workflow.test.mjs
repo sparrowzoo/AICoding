@@ -277,7 +277,7 @@ test('render is topological, traceable and freshness covers source changes', t =
   ok(f.run('render'));
   ok(f.run('check'));
   f.edit('plan.md', s => s + '\n手改生成文本。\n');
-  fails(f.run('check'), 'STALE_PLAN');
+  fails(f.run('check'), 'REVIEW_INVALID');
 });
 
 test('render refuses handwritten plans and symlink destinations without modifying targets', t => {
@@ -526,8 +526,109 @@ function statusTasks(f, tasks) {
   })) }, null, 2));
 }
 function visibleStatus(f) {
-  return fs.readFileSync(path.join(f.doc, 'task-status.md'), 'utf8').replace(/<!--[\s\S]*?-->/g, '').trim();
+  return fs.readFileSync(path.join(f.doc, 'task-status.md'), 'utf8').split('<!-- ai-coding-workflow:review:start -->')[0].replace(/<!--[\s\S]*?-->/g, '').trim();
 }
+
+const reviewStart = '<!-- ai-coding-workflow:review:start -->';
+const reviewEnd = '<!-- ai-coding-workflow:review:end -->';
+function reviewFile(f, name) { return fs.readFileSync(path.join(f.doc, name), 'utf8'); }
+function recordReview(f, name, decision = '用户确认消息 42') {
+  f.edit(name, content => content.replace('审查状态：未审查', '审查状态：自审无发现')
+    .replace('用户确认状态：待确认', '用户确认状态：已确认')
+    .replace('用户确认依据：未取得；确认日期／原始来源待补录，原始记录见 evidence.md。', `用户确认依据：${decision}；原始记录见 evidence.md。`));
+}
+
+test('review sections initialize pending and upgrade old generated files without approving them', t => {
+  const f = fixture(t);
+  for (const [command, name] of [['render', 'plan.md'], ['status', 'task-status.md']]) {
+    ok(f.run(command));
+    const generated = reviewFile(f, name);
+    assert.match(generated, /## 评审结论\n/);
+    assert.match(generated, /^<a id="review-conclusion"><\/a>$/m);
+    assert.match(generated, /审查日期与方式：未审查/);
+    assert.match(generated, /审查状态：未审查/);
+    assert.match(generated, /用户确认状态：待确认/);
+    assert.match(generated, /下一环节授权：未授权/);
+    assert.ok(generated.endsWith(`${reviewEnd}\n`));
+    f.edit(name, content => content.slice(0, content.lastIndexOf(reviewStart)));
+    fails(f.run('check'), 'REVIEW_INVALID');
+    ok(f.run(command));
+    assert.equal(reviewFile(f, name), generated);
+  }
+  ok(f.run('check'));
+});
+
+test('review edits survive unchanged rendering while source changes invalidate approval without losing history', t => {
+  const f = fixture(t);
+  ok(f.run('render')); ok(f.run('status'));
+  for (const name of ['plan.md', 'task-status.md']) recordReview(f, name);
+  ok(f.run('check'));
+  const reviewed = new Map(['plan.md', 'task-status.md'].map(name => [name, reviewFile(f, name)]));
+  ok(f.run('render')); ok(f.run('status'));
+  for (const [name, content] of reviewed) assert.equal(reviewFile(f, name), content);
+
+  f.edit('plan.yaml', content => content.replace('title: 计算购物车总额', 'title: 更新购物车总额'));
+  ok(f.run('render')); ok(f.run('status')); ok(f.run('check'));
+  for (const name of ['plan.md', 'task-status.md']) {
+    const changed = reviewFile(f, name);
+    const current = changed.slice(changed.lastIndexOf(reviewStart)).split('<!-- ai-coding-workflow:review:history -->')[0];
+    assert.match(current, /审查状态：待复审/);
+    assert.match(current, /用户确认状态：需重新确认/);
+    assert.match(current, /下一环节授权：未授权/);
+    assert.doesNotMatch(current, /用户确认状态：已确认/);
+    assert.equal(changed.split('用户确认消息 42').length - 1, 1);
+    assert.match(changed, /<details>/);
+  }
+  const once = new Map(['plan.md', 'task-status.md'].map(name => [name, reviewFile(f, name)]));
+  ok(f.run('render')); ok(f.run('status'));
+  for (const [name, content] of once) assert.equal(reviewFile(f, name), content);
+  f.edit('technical.md', content => `${content}\n新的设计说明。\n`);
+  ok(f.run('render')); ok(f.run('status')); ok(f.run('check'));
+  for (const name of ['plan.md', 'task-status.md']) {
+    const content = reviewFile(f, name);
+    assert.equal(content.split('用户确认消息 42').length - 1, 1);
+    assert.equal(content.split('<details>').length - 1, 1);
+  }
+});
+
+test('review checks reject generated-body edits and malformed or misplaced review sections without writing', t => {
+  const mutations = [
+    content => content.replace(reviewEnd, ''),
+    content => `${content}末章后多余内容\n`,
+    content => content.replace(reviewStart, `${reviewStart}\n${reviewStart}`),
+    content => content.replace('## 评审结论', '## 缺失标题'),
+    content => content.replace(/- 用户确认状态：[^\n]*\n/, ''),
+    content => content.replace(reviewStart, `\`\`\`text\n${reviewStart}`),
+    content => content.replace(/(对象／来源摘要：)`[^`]+`/, '$1`other.md`'),
+    content => content.replace(/(来源 SHA-256：`)[a-f0-9]{64}/, `$1${'0'.repeat(64)}`),
+  ];
+  for (const [command, name] of [['render', 'plan.md'], ['status', 'task-status.md']]) {
+    const f = fixture(t);
+    ok(f.run('render')); ok(f.run('status'));
+    const original = reviewFile(f, name);
+    for (const mutate of mutations) {
+      f.edit(name, () => mutate(original));
+      const malformed = reviewFile(f, name);
+      fails(f.run('check'), 'REVIEW_INVALID');
+      fails(f.run(command), 'REVIEW_INVALID');
+      assert.equal(reviewFile(f, name), malformed);
+    }
+    f.edit(name, () => original.replace('计算购物车总额', '篡改生成正文'));
+    fails(f.run('check'), name === 'plan.md' ? 'STALE_PLAN' : 'STALE_STATUS');
+  }
+});
+
+test('review markers inside rendered verification fences never become review boundaries', t => {
+  const f = fixture(t);
+  f.edit('plan.yaml', content => content.replace('verify: node --test tests/cart-total.test.mjs',
+    `verify: |\n      ${reviewStart}\n      ## 评审结论\n      ${reviewEnd}\n      node --test tests/cart-total.test.mjs`));
+  ok(f.run('render')); ok(f.run('status')); ok(f.run('check'));
+  recordReview(f, 'plan.md');
+  const before = reviewFile(f, 'plan.md');
+  assert.match(before, /用户确认消息 42/);
+  ok(f.run('render')); ok(f.run('check'));
+  assert.equal(reviewFile(f, 'plan.md'), before);
+});
 
 test('status writes exactly four visible columns with all statuses in topological order', t => {
   const f = fixture(t);
@@ -603,7 +704,7 @@ test('check permits absent status but detects stale or edited status after plan 
   fails(f.run('check'), 'STALE_STATUS');
   ok(f.run('status')); ok(f.run('check'));
   f.edit('task-status.md', s => s + '\n手动增加内容\n');
-  fails(f.run('check'), 'STALE_STATUS');
+  fails(f.run('check'), 'REVIEW_INVALID');
 });
 
 test('check protects handwritten and symlink status files even though it never writes', t => {

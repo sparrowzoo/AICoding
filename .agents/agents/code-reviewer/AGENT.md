@@ -19,7 +19,7 @@ description: 只读审查代码变更的正确性、接口契约与测试证据�
 
 - 按[环境授权](../../skills/develop-work-flow/SKILL.md#environment-authorization)核对 TRD 操作组的目标、操作、数据/费用边界、清理恢复与确认记录，检查实际环境操作及副作用是否越界。组内确认可以复用，不能因此授权未批准的下一环节；未确认操作与代码缺陷分别报告。
 
-- 按[迭代承接](../../skills/develop-work-flow/SKILL.md#iteration)核对本轮模式、原文档编号/锚点和可复核版本来源：大转小按原基线加 TRD 明确变更判断，小转大在 REQ/evidence.md 留存原 TRD 历史来源，PRD 承接整理后的业务输入；稳定编号延续，不能自指覆盖后的当前文件。未完任务及必要 done 前置的传递依赖闭包保留，撤出有确认与原因，基线不得冒充本轮成果。
+- 按[迭代承接](../../skills/develop-work-flow/SKILL.md#iteration)核对本轮模式、原文档编号/锚点和可复核版本来源：同一需求的纯技术小迭代更新原 TRD，产品逻辑小变更同步原 PRD（原本按规则省略 PRD 且仍符合条件时在 TRD 维护），不新开目录或因改动小自动切换 mode；业务需求扩大需补齐 full 时，在 REQ/evidence.md 留存原 TRD 历史来源，PRD 承接整理后的业务输入；稳定编号延续，不能自指覆盖后的当前文件。未完任务及必要 done 前置的传递依赖闭包保留，撤出有确认与原因，基线不得冒充本轮成果。
 - 按[返工规则](../../skills/develop-work-flow/SKILL.md#rework)检查打回任务及所有依赖后继统一 blocked，失效证据未复用，按依赖顺序复验；按[并行归并](../../skills/develop-work-flow/SKILL.md#collaboration)核对共享记录由唯一记录者归并。审查只返回发现，由验收方会同协调记录者归并状态与证据。
 
 - 按[全链路证据](../../skills/develop-work-flow/SKILL.md#evidence)核对 `evidence.md` 是否连接本次实际环节的上下文、输入、输出与结果，证据能否定位且对应当前版本；缺失和未执行不得伪装通过。审查保持只读，返回的结论由调用方写入记录。

@@ -7,6 +7,10 @@ import { createRequire } from 'node:module';
 
 const MARKER = '<!-- ai-coding-workflow:generated schema=1 -->';
 const STATUS_MARKER = '<!-- ai-coding-workflow:task-status schema=1 -->';
+const REVIEW_START = '<!-- ai-coding-workflow:review:start -->';
+const REVIEW_END = '<!-- ai-coding-workflow:review:end -->';
+const REVIEW_HISTORY = '<!-- ai-coding-workflow:review:history -->';
+const REVIEW_FIELDS = ['对象／来源摘要', '审查日期与方式', '审查状态', '用户确认状态', '审查结论／问题／未验证范围', '用户确认依据', '下一环节授权'];
 const help = `用法：node workflow.mjs <validate|render|status|check> --project <项目根> --feature <slug>
 
 feature 是需求目录完整名称，例如 req-r01-profile；名称使用小写 kebab-case。
@@ -18,6 +22,8 @@ lite 场景块须有正文 <a id="acceptance"></a>；支持反引号或波浪线
 输出：render 仅写 doc/<feature>/plan.md；status 仅写 doc/<feature>/task-status.md。
 validate 校验结构与追溯引用；render 生成拓扑排序的详细计划；status 生成任务编号/名称/状态/备注四列表格。
 check 要求 plan.md 新鲜；task-status.md 已存在时也检查，未生成时不阻止规划阶段检查。
+生成正文只读；末尾评审结论由协调者维护。同正文重生成保留评审；正文变化重置当前结论并保留人工历史。
+check 严格检查生成正文和评审区结构，不认证审查或用户授权真实性。
 生成文件均拒绝覆盖无对应生成标记的手写文件。例如：node workflow.mjs status --project . --feature req-r01-profile
 工具不执行 DSL 中的任何命令，不证明业务语义、测试结果或证据真实性。
 首次运行：node setup.mjs（依赖安装到 ~/.local/share/ai-coding-workflow/，需要相应权限）。
@@ -287,7 +293,7 @@ function generate(model) {
     ? '[需求](requirement.md) · [产品](product.md) · [技术](technical.md) · [场景](acceptance.feature) · [任务 DSL](plan.yaml)'
     : `[技术](technical.md)${hasAcceptance ? ' · [场景](technical.md#acceptance)' : ''} · [任务 DSL](plan.yaml)`;
   const lines = [MARKER, `<!-- sources-sha256: ${hash} -->`, `# ${inline(plan.feature)} 执行计划`, '', `本轮：${inline(plan.iteration)}`, '',
-    '本文件由 DSL 生成，请修改源文件后重新 render。状态与证据是声明；业务语义、测试真实性及审查质量由人或审查流程确认。CLI 不执行以下命令。', '',
+    '本文件正文由 DSL 生成，请修改源文件后重新 render；仅末尾评审结论区由协调者维护。状态与证据是声明；业务语义、测试真实性及审查质量由人或审查流程确认。CLI 不执行以下命令。', '',
     `来源：${sourceLinks}`, '',
     'Git 追溯：提交正文使用 `Task: <feature>/<TID>`；任务编号在 feature 内终身不复用，历史复用由 Git 审查检查。当前提交无需将自己的 hash 写回当前文件。', ''];
   for (const task of ordered) {
@@ -313,6 +319,83 @@ function generateStatus(model) {
     '| 任务编号 | 名称 | 状态 | 备注 |', '| --- | --- | --- | --- |',
     ...model.ordered.map(task => `| ${task.id} | ${tableCell(task.title)} | ${labels[task.status]} | ${tableCell(task.remark || '—')} |`), '',
   ].join('\n');
+}
+function reviewParts(content, name) {
+  if (content === undefined) return { body: content };
+  const markers = [], comments = { inComment: false };
+  let offset = 0, fence;
+  for (const rawLine of content.split('\n')) {
+    const line = rawLine.replace(/\r$/, '');
+    if (fence) {
+      if (new RegExp(`^ {0,3}${fence.char}{${fence.length},}[ \\t]*$`).test(line)) fence = undefined;
+    } else if (!comments.inComment && line.startsWith('<!-- ai-coding-workflow:review:')) {
+      if (![REVIEW_START, REVIEW_END, REVIEW_HISTORY].includes(line)) fail('REVIEW_INVALID', '评审区含损坏的控制标记；请先修复，未覆盖文件。');
+      markers.push({ marker: line, offset, after: offset + rawLine.length + 1 });
+    } else {
+      const opening = visibleMarkdownLine(line, comments).match(/^ {0,3}(`{3,}|~{3,})/);
+      if (opening) fence = { char: opening[1][0], length: opening[1].length };
+    }
+    offset += rawLine.length + 1;
+  }
+  if (markers.length === 0) {
+    if ((fence || comments.inComment) && content.includes('<!-- ai-coding-workflow:review:')) {
+      fail('REVIEW_INVALID', '未闭合的 Markdown 遮蔽了评审区；请先修复，未覆盖文件。');
+    }
+    return { body: content };
+  }
+  const [start, ...remaining] = markers;
+  const end = remaining.at(-1), history = remaining.length === 2 ? remaining[0] : undefined;
+  if (start.marker !== REVIEW_START || end?.marker !== REVIEW_END ||
+      ![2, 3].includes(markers.length) || (history && history.marker !== REVIEW_HISTORY) || content.slice(end.after).trim()) {
+    fail('REVIEW_INVALID', '必须有唯一、完整且位于文件末尾的评审区；请先修复，未覆盖文件。');
+  }
+  const current = content.slice(start.after, history?.offset ?? end.offset).trim();
+  if (!current.startsWith('<a id="review-conclusion"></a>\n## 评审结论\n') || REVIEW_FIELDS.some(field =>
+    !new RegExp(`^- ${field}：[^\\S\\r\\n]*\\S[^\\r\\n]*$`, 'm').test(current))) {
+    fail('REVIEW_INVALID', '评审区缺少评审结论标题或必需的非空状态／依据字段；请先修复，未覆盖文件。');
+  }
+  const body = content.slice(0, start.offset);
+  const hash = body.match(/^<!-- sources-sha256: ([a-f0-9]{64}) -->$/m)?.[1];
+  const sourceLine = `- 对象／来源摘要：\`${name}\`；来源 SHA-256：\`${hash}\`。`;
+  if (!hash || !current.split(/\r?\n/).includes(sourceLine)) {
+    fail('REVIEW_INVALID', '评审对象／来源摘要与生成正文不匹配；不得手改文件名或来源摘要。');
+  }
+  return { body, review: content.slice(start.offset), current,
+    history: history ? content.slice(history.after, end.offset).trim() : '' };
+}
+function defaultReview(name, hash, changed = false) {
+  return ['<a id="review-conclusion"></a>', '## 评审结论', '',
+    `- 对象／来源摘要：\`${name}\`；来源 SHA-256：\`${hash}\`。`,
+    '- 审查日期与方式：未审查；实际日期与方式待记录。',
+    `- 审查状态：${changed ? '待复审（生成正文已变化）' : '未审查'}。`,
+    `- 用户确认状态：${changed ? '需重新确认' : '待确认'}。`,
+    '- 审查结论／问题／未验证范围：尚未核验本版本；CLI 只检查结构，不证明业务或授权有效。',
+    '- 用户确认依据：未取得；确认日期／原始来源待补录，原始记录见 evidence.md。',
+    '- 下一环节授权：未授权；须记录用户明确批准的对象和范围。'].join('\n');
+}
+function withReview(body, previous, name, hash) {
+  const old = reviewParts(previous, name);
+  if (old.review && old.body === body) return body + old.review;
+  let history = old.history || '';
+  if (old.review) {
+    const oldHash = old.body.match(/^<!-- sources-sha256: ([a-f0-9]{64}) -->$/m)?.[1];
+    // Do not accumulate untouched pending defaults or recursively copy the history.
+    if (![defaultReview(name, oldHash), defaultReview(name, oldHash, true)].includes(old.current)) {
+      const bodyHash = createHash('sha256').update(old.body).digest('hex');
+      const entry = ['<details>', `<summary>历史评审（已失效；生成正文 SHA-256：${bodyHash}）</summary>`, '',
+        fenced(old.current), '', '</details>'].join('\n');
+      history = [history, entry].filter(Boolean).join('\n\n');
+    }
+  }
+  const section = [REVIEW_START, '', defaultReview(name, hash, Boolean(old.review)), ''];
+  if (history) section.push(REVIEW_HISTORY, '', history, '');
+  section.push(REVIEW_END, '');
+  return body + section.join('\n');
+}
+function checkGenerated(content, expected, staleCode, name) {
+  const parts = reviewParts(content, name);
+  if (parts.body !== expected) fail(staleCode, `${name} 缺失、源内容已变或生成正文被修改；请先运行 ${name === 'plan.md' ? 'render' : 'status'}。`);
+  if (!parts.review) fail('REVIEW_INVALID', `${name} 缺少末尾评审区；请运行 ${name === 'plan.md' ? 'render' : 'status'} 升级生成文件。`);
 }
 function readGenerated(model, name, marker, errorCode) {
   const destination = safePath(model.root, path.join(model.directory, name));
@@ -344,19 +427,19 @@ function main() {
   const model = load(options['--project'], options['--feature'], dependencies());
   if (command === 'validate') { console.log(`OK validate ${model.plan.feature}: ${model.ordered.length} tasks；仅结构/引用校验，未执行命令。`); return; }
   if (command === 'status') {
-    const { destination } = readGenerated(model, 'task-status.md', STATUS_MARKER, 'HANDWRITTEN_STATUS');
-    writeGenerated(model, destination, generateStatus(model));
+    const { destination, content: previous } = readGenerated(model, 'task-status.md', STATUS_MARKER, 'HANDWRITTEN_STATUS');
+    writeGenerated(model, destination, withReview(generateStatus(model), previous, 'task-status.md', model.hash));
     console.log(`OK status ${path.relative(model.root, destination)}`); return;
   }
   const { destination, content: previous } = readGenerated(model, 'plan.md', MARKER, 'HANDWRITTEN_PLAN');
   const expected = generate(model);
   if (command === 'check') {
-    if (previous !== expected) fail('STALE_PLAN', 'plan.md 缺失、源内容已变或生成文件被修改；请先运行 render。');
+    checkGenerated(previous, expected, 'STALE_PLAN', 'plan.md');
     const status = readGenerated(model, 'task-status.md', STATUS_MARKER, 'HANDWRITTEN_STATUS');
-    if (status.content !== undefined && status.content !== generateStatus(model)) fail('STALE_STATUS', 'task-status.md 源内容已变或生成文件被修改；请先运行 status。');
-    console.log(`OK check ${model.plan.feature}: 生成内容与全部源文件一致。`); return;
+    if (status.content !== undefined) checkGenerated(status.content, generateStatus(model), 'STALE_STATUS', 'task-status.md');
+    console.log(`OK check ${model.plan.feature}: 生成正文与全部源文件一致，评审区结构有效；未认证审查或用户授权。`); return;
   }
-  writeGenerated(model, destination, expected);
+  writeGenerated(model, destination, withReview(expected, previous, 'plan.md', model.hash));
   console.log(`OK render ${path.relative(model.root, destination)}`);
 }
 try { main(); } catch (error) { console.error(`ERROR [${error.code || 'IO_ERROR'}] ${error.message}`); process.exitCode = 1; }

@@ -2,43 +2,46 @@
 
 
 
-# TRD：项目名称 
+# TRD：项目名称
 
-技术需求规格说明书（TRD） 
+技术需求规格说明书（TRD）
 
 
 
 2022年09⽉01⽇ 需求发起⼈：项目发起人 产品经理：产品经理姓名
 
-# ⼀\. ⽅案概述 
+> 编写提示（交付前删除）：人员、团队和职责按[相关人确认](../../SKILL.md#stakeholder-confirmation)核实；缺少必要信息时先询问用户，不以“未指定”或其他占位词代填，也不把模板示例当作真实人员。已有依据的角色／团队名称可以使用；“无”须有确实不涉及该角色的依据。
 
-## 1\.1 背景介绍 
 
-## 1\.2 价值  
+# ⼀\. ⽅案概述
 
-架构价值 
+## 1\.1 背景介绍
 
-商业价值 
+## 1\.2 价值
 
-## 1\.3 最终⽬标 
+架构价值
 
-### 现状 
+商业价值
+
+## 1\.3 最终⽬标
+
+### 现状
 
 ### 新版迭代说明
 
-解决核⼼问题 
+解决核⼼问题
 
-## 1\.4 相关系统TRD 
+## 1\.4 相关系统TRD
 
-⽆ 
+⽆
 
-## 1\.5 术语和缩略语 
+## 1\.5 术语和缩略语
 
 
 
-# ⼆、系统需求  
+# ⼆、系统需求
 
-# 三、总体⽅案 
+# 三、总体⽅案
 
 ## 3\.1 全景架构图
 
@@ -117,51 +120,228 @@ flowchart TB
 
 ## 3\.3\. 核心业务流程图及类图
 
-# 四、系统依赖 
+# 四、系统依赖
 
-4\.1、 
+4\.1、
 
-# 五、⻛险 
+# 五、⻛险
 
-# 六、运⾏设计 
+# 六、运⾏设计
 
 ## 6\.1  接口设计 具体到字段
+接口返回协议基类
+```java
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.sparrow.protocol;
+
+import com.sparrow.protocol.constant.Constant;
+import com.sparrow.protocol.constant.SparrowError;
+import lombok.Data;
+
+import java.util.Map;
+
+/**
+ * 可用于协议 规范服务端返回格式 <p>
+ * <p>
+ * 与异常相比 考虑继承的问题 枚举不可以继承
+ * ErrorSupport
+ * <p>
+ * 考虑该类要求稳定不经常修改 不要影响数据协议 pure function JDK ddd (VO)
+ * <p>
+ * DCL
+ * 为保证线程安全，属性只读
+ */
+@Data
+public class Result<T> implements DTO {
+    private Result() {
+
+    }
+
+    /**
+     * 成功返回有效数据
+     *
+     * @param data
+     */
+    public Result(T data) {
+        if (data instanceof ErrorSupport) {
+            ErrorSupport error = (ErrorSupport) data;
+            this.code = error.getCode();
+            this.key = error.name().toLowerCase();
+            this.message = error.getMessage();
+        } else {
+            this.code = Constant.RESULT_OK_CODE;
+            this.data = data;
+            this.message = Constant.SUCCESS;
+        }
+    }
+
+    /**
+     * 成功返回有效数据
+     * 开闭原则 SPI
+     *
+     * @param data 数据
+     * @param key  i18n key
+     */
+    public Result(T data, String key) {
+        this.code = Constant.RESULT_OK_CODE;
+        this.data = data;
+        this.key = key;
+        this.message = Constant.SUCCESS;
+    }
+
+    public static <T> Result success(T data, String instruction) {
+        Result result = new Result(data);
+        result.instruction = instruction;
+        return result;
+    }
+
+    /**
+     * 初始化默认成功
+     * 这个对象是在什么时侯用呢？
+     */
+    private static volatile Result ok;
+
+    /**
+     * 默认成功 GC FREE
+     * DCL 解决容器加载顺序的问题：
+     * 因为static 是在jvm启动的时侯加载的
+     * 而spring 是在其后加载的
+     * <p>
+     * 实际是static 懒加载，用的时侯才执行
+     *
+     * @return
+     */
+    public static Result success() {
+        if (ok != null) {
+            return ok;
+        }
+        synchronized (Result.class) {
+            if (ok != null) {
+                return ok;
+            }
+            ok = success(Constant.SUCCESS);
+            return ok;
+        }
+    }
+
+
+    /**
+     * 返回有message的默认成功
+     *
+     * @param message
+     * @return
+     */
+    public static Result success(String message) {
+        Result result = new Result("");
+        result.message = message;
+        return result;
+    }
+
+
+    private static volatile Result systemServerError;
+
+
+    /**
+     * 错误编码
+     */
+    private String code;
+
+    /**
+     * 错误key
+     */
+    private String key;
+    /**
+     * 错误文本 需要业务自定义获取错误信息获取器
+     */
+    private String message;
+
+    /**
+     * 指令 用于websocket 返回指令
+     */
+    private String instruction;
+    /**
+     * 返回值
+     */
+    private T data;
+
+    private Map<String, String> parameters;
+
+
+    public static Result fail(ErrorSupport errorSupport) {
+    }
+
+    private static Result fail(BusinessException business) {
+
+    }
+
+    public static Result fail(Exception business) {
+    }
+
+    public static Result fail() {
+    }
+
+    public T getData() {
+        return this.data;
+    }
+
+    public boolean isSuccess() {
+        return this.code.equals(Constant.RESULT_OK_CODE);
+    }
+}
+
+```
 
 ### 6\.2 数据库表结构详细设计 具体到字段
 
 
 
-# 七 特性设计 
+# 七 特性设计
 
-## 7\.1 索引性能 
+## 7\.1 索引性能
 
-## 7\.2 安全性 
+## 7\.2 安全性
 
 ⽆
 
-## 7\.3 可靠性 
+## 7\.3 可靠性
 
-## 7\.4 监控与报警列表 
+## 7\.4 监控与报警列表
 
-# ⼋、部署⽅案 
+# ⼋、部署⽅案
 
-## 8\.1 灰度⽅案 
-
-
-
-## 8\.2 上线⽅案 
+## 8\.1 灰度⽅案
 
 
 
-## 8\.3 回滚⽅案 
+## 8\.2 上线⽅案
 
-# 九 附录 
 
-1\. 编程规范 
 
-2\. ⽇志设计 
+## 8\.3 回滚⽅案
 
-3\. 存储设计 
+# 九 附录
+
+1\. 编程规范
+
+2\. ⽇志设计
+
+3\. 存储设计
 
 ### 表结构设计规范（MySQL）
 
@@ -183,13 +363,27 @@ flowchart TB
 
 
 
-4\. 交接⽂档 
+4\. 交接⽂档
 
-5\. 项⽬排期 
+5\. 项⽬排期
 
 |任务|开发者|开始时间|结束时间|PD\(人天\)|
 |---|---|---|---|---|
 |商品新增|张三|2022\-09\-01|2022\-09\-02|1|
 
-6\. 历次沟通意⻅汇总表 
+6\. 历次沟通意⻅汇总表
 
+<a id="review-conclusion"></a>
+# 评审结论
+
+| 评审项 | 当前结论 |
+| --- | --- |
+| 对象、版本与范围 | REPLACE_REVIEW_TARGET_VERSION_SCOPE |
+| 审查日期与方式 | 未审查 |
+| 文档审查状态 | 未审查 |
+| 审查结论及问题 | 待审查；未形成结论 |
+| 未决项与未验证范围 | REPLACE_PENDING_AND_UNVERIFIED |
+| 用户确认状态 | 待确认 |
+| 用户确认日期与依据 | 尚无本版确认记录 |
+| 下一环节与授权范围 | 未授权；按实际用户答复更新 |
+| 评审及确认来源 | REPLACE_REVIEW_EVIDENCE_LINK |

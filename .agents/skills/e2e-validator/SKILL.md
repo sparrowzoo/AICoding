@@ -3,11 +3,15 @@ name: e2e-validator
 description: 对照产品规则、Gherkin 场景和任务证据验证已实施功能，定位缺失绑定、失败和未验证项；用于迭代验收或完成前核验。
 ---
 
+文档首先遵守[清楚、适量、复用原则](../develop-work-flow/SKILL.md#documentation-principle)：仅展开本次需求及变化，未变内容引用既有章节；full/lite 不决定篇幅，模板不要求机械填满。
+
 共享执行规则来自 [develop-work-flow](../develop-work-flow/SKILL.md)。通过软链接加载时，先解析本文件的真实路径，仅用于定位技能包内的 skill、agents、脚本和模板；执行时不回源仓库读取设计文档。目标业务项目的需求、产品、技术、代码与证据仍是必要任务输入，应按本次范围读取。首次写入前执行主工作流的[需求分支准备](../develop-work-flow/SKILL.md#requirement-branch)，续做或阶段交接时核对并复用对应分支；只读审查不切换工作区。
 
 # 功能验收
 
-先读取[公共工作流](../develop-work-flow/SKILL.md)和 [DSL 规范](../develop-work-flow/SKILL.md#dsl)，按[阶段授权](../develop-work-flow/SKILL.md#stage-authorization)核对实施批次结论、当前产物与进入独立 e2e 验收的授权；直接调用本 skill 也遵守相同门禁。环境动作另按[环境授权](../develop-work-flow/SKILL.md#environment-authorization)核对 TRD 中成组批准的对象与范围，范围内复用环境授权不替代本阶段授权。输入为目标项目 `doc/<需求目录>/` 下按 mode 维护的权威规则、场景、TRD、任务 DSL、`evidence.md` 及实际实现和测试结果：按[迭代承接](../develop-work-flow/SKILL.md#iteration)读取本轮 mode：lite 读取 technical.md，存在原文档基线时以基线加 TRD 明确变更为有效规则，Gherkin 在 TRD；full 使用产品和独立场景文件，有承接来源时核对原 TRD 编号与可复核版本；不要求 lite 补齐完整文档集。沿用 `R01`、`S01`、`T01` 等现有标识，不重新编号或另造一套场景。
+按[新需求独立成文](../develop-work-flow/SKILL.md#requirement-document-boundary)读取本次需求自己的文档与计划；跨需求仅按章节引用读取所需基线，不合并旧需求文档、任务或证据。下述编号延续和跨轮承接仅限同一需求。
+
+先读取[公共工作流](../develop-work-flow/SKILL.md)和 [DSL 规范](../develop-work-flow/SKILL.md#dsl)，按[阶段授权](../develop-work-flow/SKILL.md#stage-authorization)核对实施批次结论、当前产物与进入独立 e2e 验收的授权；直接调用本 skill 也遵守相同门禁。环境动作另按[环境授权](../develop-work-flow/SKILL.md#environment-authorization)核对 TRD 中成组批准的对象与范围，范围内复用环境授权不替代本阶段授权。输入为目标项目 `doc/<需求目录>/` 下按 mode 维护的权威规则、场景、TRD、任务 DSL、`evidence.md` 及实际实现和测试结果：按[迭代承接](../develop-work-flow/SKILL.md#iteration)读取本轮 mode：lite 读取 technical.md，存在原文档基线时读取引用；已有 PRD 的产品规则以同步后的 PRD 为准，TRD 与其冲突时报告文档不一致，Gherkin 在 TRD；full 使用产品和独立场景文件，有承接来源时核对原 TRD 编号与可复核版本；不要求 lite 补齐完整文档集。沿用 `R01`、`S01`、`T01` 等现有标识，不重新编号或另造一套场景。
 
 1. 检查本迭代每个已承诺场景与真实测试实现、执行命令和结果的关联。Gherkin 场景内容存在、测试代码存在或命令退出成功但没有执行目标场景，都不足以证明验收通过。
 2. 按 [RIGHT-BICEP](../develop-work-flow/SKILL.md#right-bicep) 核对适用维度的用例与证据，检查反向/交叉验证是否独立有效、错误是否实际触发、性能是否按约定条件测量；不适用理由合理且未跳过已承诺目标。运行公共 `validate`/`check`，并核实任务证据对应当前实现。自动结果只能证明它实际覆盖的行为；按风险执行必要的集成或端到端验证，不机械要求每条规则凑齐固定类别。
@@ -22,8 +26,10 @@ description: 对照产品规则、Gherkin 场景和任务证据验证已实施�
 
 按[并行归并](../develop-work-flow/SKILL.md#collaboration)由指定协调记录者根据验收结果统一更新 plan.yaml 的 status、remark、evidence 和 evidence.md；串行验收可由当前验收方担任记录者。失败、受阻或待验证事项在 remark 简述原因与下一步；未执行或未通过不能标为 done。随后按[工作流脚本入口](../develop-work-flow/SKILL.md#script-entry)依次执行 render、status、check（--project 指向项目根，--feature 填完整需求目录，如 req-r01-profile）。
 
-必须在该需求的 `doc/req-【需求】/` 下生成独立 `task-status.md`，只显示“任务编号、名称、状态、备注”四列，列出当前计划全部任务，基线任务备注非本轮新增成果；即使未全部通过也如实交付。状态表由 DSL 生成，不手改，不增加标题、统计或证据列。详细规则见 [任务状态列表](../develop-work-flow/SKILL.md#task-status)。
+必须刷新该需求从规划阶段维护的 `doc/req-【需求】/task-status.md`；缺失时补生成并记录交付缺口，其任务状态正文只显示“任务编号、名称、状态、备注”四列，列出当前计划全部任务，基线任务备注非本轮新增成果；即使未全部通过也如实交付。任务状态表正文由 DSL 生成，不手改，不增加表格标题、统计或证据列；文件末尾另设评审结论。详细规则见 [任务状态列表](../develop-work-flow/SKILL.md#task-status)。
 
 交付 `evidence.md` 的全链路核对结论和未决项，并记录本次实际验收输入、输出及执行结果；工具校验不会代替这项核对。
 
 按公共规范决定是否值得本阶段内的独立审查，披露实际审查方式。最终区分通过、失败和未验证项；无发现就说明无发现，不能将未验证写成通过。交付验收报告后，按[阶段授权](../develop-work-flow/SKILL.md#stage-authorization)报告结论并取得下一环节授权；提交、push、合并、部署分别核对相应对象与范围，已明确批准的同一对象和范围不重复申请。不能临时把这些动作合并进验收阶段规避门禁。本 skill 不自动修业务代码、提交、推送、合并或部署。
+
+所有本次交付文档最末按[文档评审状态](../develop-work-flow/SKILL.md#document-review-status)维护“评审结论”，记录实际审查、用户确认及下一环节授权；取得答复或发生影响结论的修改后同步更新，不能沿用失效批准。生成视图只维护独立评审区，机器可读文件用末尾注释，不改变任务或场景契约。
