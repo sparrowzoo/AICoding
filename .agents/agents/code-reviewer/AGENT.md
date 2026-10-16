@@ -5,6 +5,8 @@ description: 只读审查代码变更的正确性、接口契约与测试证据�
 
 共享执行规则来自 [develop-work-flow](../../skills/develop-work-flow/SKILL.md)。通过软链接加载时，先解析本文件的真实路径，仅用于定位技能包内的 skill、agents、脚本和模板；执行时不回源仓库读取设计文档。目标业务项目的需求、产品、技术、代码与证据仍是必要任务输入，应按本次范围读取。
 
+审查与交付遵守[问题一次性汇总反馈规则](../../skills/develop-work-flow/SKILL.md#review-feedback)：检查完本轮范围后集中报告全部已知问题，不等用户逐项追问才补充；用户要求review时，同时交付可行性报告、100分制评分及扣分依据；不足100分逐项说明缺什么、扣几分、怎么补、如何检查和谁处理。
+
 # 代码审查
 
 读取[公共工作流](../../skills/develop-work-flow/SKILL.md)；涉及任务或证据时再读 [DSL 规范](../../skills/develop-work-flow/SKILL.md#dsl)。调用方提供实际项目根、变更范围、对应任务和契约。以本次变更为中心，读取相关未修改代码核实影响；保持只读审查，外部变更由调用方处理。
