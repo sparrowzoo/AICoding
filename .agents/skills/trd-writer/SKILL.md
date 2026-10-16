@@ -11,13 +11,13 @@ description: 按指定技术需求规格说明书模板编写 TRD、任务 DSL �
 
 先按[新需求独立成文](../develop-work-flow/SKILL.md#requirement-document-boundary)确定文档归属：每次新需求在独立需求目录重新编写当前阶段文档，重复内容用适用说明与具体章节链接复用。下文沿用目录、保留编号、原位更新与跨轮承接仅限同一需求的修订和继续执行，不适用于后续新需求；不能因为属于同一产品或修改存量功能而并入旧文档。
 
-交付遵守[产物内容边界](../develop-work-flow/SKILL.md#artifact-relevance)：围绕当前需求的技术方案编写，skill 更新及编写工具的维护过程单独留证；与项目实施直接相关的技术依赖、验证及风险仍按模板保留。
+交付遵守[产物内容边界](../develop-work-flow/SKILL.md#artifact-relevance)：skill 规则变更对业务文档透明，直接维护当前有效内容；不在正文、评审区或业务 evidence 中记录规则调整、旧文档问题及重构过程。真实业务变化、授权与验证记录仍须保留。
 
 文档中的人员、团队与职责按[相关人确认](../develop-work-flow/SKILL.md#stakeholder-confirmation)核实；缺少必要信息时集中询问用户，不用“未指定”或其他占位词替代确认，已确认的角色／团队及后置安排按实际范围复用。
 
 先读取[公共工作流](../develop-work-flow/SKILL.md)和 [DSL 规范](../develop-work-flow/SKILL.md#dsl)，按[阶段授权](../develop-work-flow/SKILL.md#stage-authorization)核对上游结论、当前产物与进入技术设计的授权；直接调用本 skill 也遵守相同门禁。输入为目标项目 `doc/<需求目录>/` 中按 mode 维护的需求、产品规则、验收场景及当前授权；在已授权设计范围内补齐必需输入，不把设计授权当作实施授权。
 
-按[分流规则](../develop-work-flow/SKILL.md#routing)维护 `technical.md` 与 `plan.yaml`，生成 `plan.md` 与 `task-status.md`，两者均为首次计划交付的必备产物。编写前按[需求性质确认](../develop-work-flow/SKILL.md#requirement-kind)核对用户标识；未明确时先提示确认，不先写文档。明确技术需求可省略 BRD/PRD，不引入业务方或产品经理；技术复杂度及方案评估仍须明确。业务需求只有 lite 简单需求可省略，复杂业务需求使用 full。技术需求省略产品文件时使用工具的 lite 文档布局，不等于复杂度简单。`mode: lite` 时 TRD 同时承载目标、规则、正文 R 锚点及有行为任务的唯一 Gherkin 代码块（`acceptance` 锚点；纯文档等无行为任务按 DSL 例外处理）；不要求 req/prd/独立场景文件。`mode: full` 时读取需求和产品文档，场景正文在 acceptance.feature。两种模式均保留任务追溯、真实测试及四列验收状态。
+按[分流规则](../develop-work-flow/SKILL.md#routing)维护 `technical.md` 与 `plan.yaml`，生成 `plan.md` 与 `task-status.md`，两者均为首次计划交付的必备产物。编写前按[需求性质确认](../develop-work-flow/SKILL.md#requirement-kind)核对用户标识；未明确时先提示确认，不先写文档。明确技术需求可省略 BRD/PRD，不引入业务方或产品经理；技术复杂度及方案评估仍须明确。需求性质（技术／业务产品）、复杂度（简单／复杂）和文档布局（lite／full）分别记录。简单业务需求可采用 lite 并省略 BRD/PRD，复杂业务需求采用 full；lite/full 不表示复杂度。技术需求省略产品文件时使用工具的 lite 文档布局，不等于复杂度简单。`mode: lite` 时 TRD 同时承载目标、规则、正文 R 锚点及有行为任务的唯一 Gherkin 代码块（`acceptance` 锚点；纯文档等无行为任务按 DSL 例外处理）；不要求 req/prd/独立场景文件。`mode: full` 时读取需求和产品文档，场景正文在 acceptance.feature。两种模式均保留任务追溯、真实测试及四列验收状态。
 
 两种模式编制前读取 [TRD 模板](../develop-work-flow/assets/feature/technical.md)，按[主工作流模板规则](../develop-work-flow/SKILL.md#trd-template)核对本次适用内容；可合并、简写或省略无关章节，公共规范引用既有来源，不机械保留九章及全部表格。稳定编号、接口、测试、验收和授权锚点放在相应语义章节，元信息按事实填写。
 

@@ -3,7 +3,7 @@ name: req-writer
 description: 编写 BRD／需求依据，讲清全景业务架构、项目或需求定位、核心痛点、业务解决方案及依赖的人员团队、服务和数据；用于新需求梳理或调整，为完整 PRD 提供依据。
 ---
 
-文档首先遵守[清楚、适量、复用原则](../develop-work-flow/SKILL.md#documentation-principle)：仅展开本次需求及变化，未变内容引用既有章节；full/lite 不决定篇幅，模板不要求机械填满。
+文档首先遵守[清楚、适量、复用原则](../develop-work-flow/SKILL.md#documentation-principle)：仅展开本次需求及变化，未变内容引用既有章节；full/lite 仅表示文档布局，不表示需求性质、复杂度或篇幅，模板不要求机械填满。
 
 共享执行规则来自 [develop-work-flow](../develop-work-flow/SKILL.md)。通过软链接加载时，先解析本文件的真实路径，仅用于定位技能包内的 skill、agents、脚本和模板；执行时不回源仓库读取设计文档。目标业务项目的需求、产品、技术、代码与证据仍是必要任务输入，应按本次范围读取。首次写入前执行主工作流的[需求分支准备](../develop-work-flow/SKILL.md#requirement-branch)，续做或阶段交接时核对并复用对应分支；只读审查不切换工作区。
 
@@ -13,7 +13,7 @@ description: 编写 BRD／需求依据，讲清全景业务架构、项目或需
 
 编写前按[需求性质确认](../develop-work-flow/SKILL.md#requirement-kind)决定文档集合，按[迭代承接](../develop-work-flow/SKILL.md#iteration)决定更新范围。未明确性质先询问，已有确认直接复用；独立技术需求可省略 BRD/PRD。已有产品需求的迭代：纯技术改动只更新原 TRD，产品逻辑变化才同步原 PRD。
 
-交付遵守[产物内容边界](../develop-work-flow/SKILL.md#artifact-relevance)：只保留本需求的业务依据与内容，skill 更新及编写过程单独留证，不进入 BRD 正文、来源表或元信息。
+交付遵守[产物内容边界](../develop-work-flow/SKILL.md#artifact-relevance)：skill 规则变更对业务文档透明，直接维护当前有效内容；不在正文、评审区或业务 evidence 中记录规则调整、旧文档问题及重构过程。真实业务变化、授权与验证记录仍须保留。
 
 文档中的人员、团队与职责按[相关人确认](../develop-work-flow/SKILL.md#stakeholder-confirmation)核实；缺少必要信息时集中询问用户，不用“未指定”或其他占位词替代确认，已确认的角色／团队及后置安排按实际范围复用。
 
@@ -21,7 +21,7 @@ description: 编写 BRD／需求依据，讲清全景业务架构、项目或需
 
 开始前读取[公共工作流](../develop-work-flow/SKILL.md)，按[阶段授权](../develop-work-flow/SKILL.md#stage-authorization)核对本次需求编写的对象、范围与授权；直接调用本 skill 也遵守相同门禁。当前项目约定与用户明确要求优先；进入本阶段不自动授权产品设计、技术设计或业务实施。自主执行例外仅按公共规则判断并留证，不以新功能或纯文档为由绕过。
 
-先按[分流规则](../develop-work-flow/SKILL.md#routing)确定本轮文档深度，并遵循[迭代承接](../develop-work-flow/SKILL.md#iteration)。轻量模式由 [trd-writer](../trd-writer/SKILL.md)维护本轮 TRD；同一需求沿用原目录和布局，纯技术小迭代无需改写 REQ/PRD；产品逻辑小变更须同步原 PRD，业务目标或约束变化时同步 REQ。未变内容引用，不为小改全文重写。以下产物规则用于完整模式。
+先按[分流规则](../develop-work-flow/SKILL.md#routing)分别确认需求性质、评估复杂度、确定文档布局，并遵循[迭代承接](../develop-work-flow/SKILL.md#iteration)。lite 布局由 [trd-writer](../trd-writer/SKILL.md)维护本轮 TRD；同一需求沿用原目录和布局，纯技术小迭代无需改写 REQ/PRD；产品逻辑小变更须同步原 PRD，业务目标或约束变化时同步 REQ。未变内容引用，不为小改全文重写。以下产物规则用于 full 布局。
 
 在目标项目维护 `doc/<需求目录>/requirement.md`，同一需求继续使用原目录。lite 转 full 时补齐本需求业务依据，未变内容引用基线，引用原 `TRD-<需求目录>` 编号与可核实的基线版本（未提交来源按公共规则留证）；保留已有 R 编号，新编号递增，不把同路径当前文件当历史来源。同一需求的其余完整模式修订按实际范围原位更新；新需求重新编写独立文档。本文承担 [BRD 业务职责](../develop-work-flow/SKILL.md#brd-business-context)，编写前读取[需求模板](../develop-work-flow/assets/feature/requirement.md)，讲清全景业务架构、当前项目／需求的位置与定位、核心痛点、业务解决方案及依赖的人员团队、服务和数据，保留原始诉求、来源、确认输入及稳定的 `R01` 等需求 anchor，作为 PRD 编制依据；当前完整产品规格由 `product.md` 按[指定 PRD 模板](../develop-work-flow/SKILL.md#prd-template)承接，不在 REQ 并行维护第二套产品规格。场景正文交给 `acceptance.feature`。
 

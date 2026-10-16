@@ -3,7 +3,7 @@ name: prd-writer
 description: 按指定产品需求规格说明书模板编写完整 PRD 和 Gherkin 验收场景；用于产品设计或需求调整，交接技术设计与可执行计划。
 ---
 
-文档首先遵守[清楚、适量、复用原则](../develop-work-flow/SKILL.md#documentation-principle)：仅展开本次需求及变化，未变内容引用既有章节；full/lite 不决定篇幅，模板不要求机械填满。
+文档首先遵守[清楚、适量、复用原则](../develop-work-flow/SKILL.md#documentation-principle)：仅展开本次需求及变化，未变内容引用既有章节；full/lite 仅表示文档布局，不表示需求性质、复杂度或篇幅，模板不要求机械填满。
 
 共享执行规则来自 [develop-work-flow](../develop-work-flow/SKILL.md)。通过软链接加载时，先解析本文件的真实路径，仅用于定位技能包内的 skill、agents、脚本和模板；执行时不回源仓库读取设计文档。目标业务项目的需求、产品、技术、代码与证据仍是必要任务输入，应按本次范围读取。首次写入前执行主工作流的[需求分支准备](../develop-work-flow/SKILL.md#requirement-branch)，续做或阶段交接时核对并复用对应分支；只读审查不切换工作区。
 
@@ -13,7 +13,7 @@ description: 按指定产品需求规格说明书模板编写完整 PRD 和 Gher
 
 编写前按[需求性质确认](../develop-work-flow/SKILL.md#requirement-kind)决定文档集合，按[迭代承接](../develop-work-flow/SKILL.md#iteration)决定更新范围。未明确性质先询问，已有确认直接复用；独立技术需求可省略 BRD/PRD。已有产品需求的迭代：纯技术改动只更新原 TRD，产品逻辑变化才同步原 PRD。
 
-交付遵守[产物内容边界](../develop-work-flow/SKILL.md#artifact-relevance)：围绕当前产品需求编写，skill 更新、模板维护和编写过程单独留证，不进入产品规格正文、来源表或元信息。
+交付遵守[产物内容边界](../develop-work-flow/SKILL.md#artifact-relevance)：skill 规则变更对业务文档透明，直接维护当前有效内容；不在正文、评审区或业务 evidence 中记录规则调整、旧文档问题及重构过程。真实业务变化、授权与验证记录仍须保留。
 
 文档中的人员、团队与职责按[相关人确认](../develop-work-flow/SKILL.md#stakeholder-confirmation)核实；缺少必要信息时集中询问用户，不用“未指定”或其他占位词替代确认，已确认的角色／团队及后置安排按实际范围复用。
 
