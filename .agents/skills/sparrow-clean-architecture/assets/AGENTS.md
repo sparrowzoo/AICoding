@@ -39,9 +39,9 @@ flowchart TB
 | 模块 | 职责与边界 |
 | --- | --- |
 | `protocol` | 稳定请求参数、查询条件、结果 DTO、协议枚举；不含业务实现、PO、HTTP/Servlet、ORM 或数据库类型。 |
-| `domain` | 领域模型、业务规则、用例服务、Repository/Gateway 接口；不含 Controller、SQL、Mapper、PO、DAO 或基础设施实现。 |
+| `domain` | 领域模型、业务规则、用例服务、Repository 接口；不含 Controller、SQL、Mapper、PO、DAO 或基础设施实现。 |
 | `adapter` | Controller、格式与必填校验、协议与领域对象组装、响应及异常映射；不承载核心业务规则，不直接访问 DAO 或基础设施实现。 |
-| `infrastructure` | Repository/Gateway 实现、领域对象与 PO 转换、外部服务与缓存适配；通过 `dao-api` 访问持久化，不绑定具体 DAO 实现，不重复实现业务规则。 |
+| `infrastructure` | Repository 实现、领域对象与 PO 转换、外部服务与缓存适配；通过 `dao-api` 访问持久化，不绑定具体 DAO 实现，不重复实现业务规则。 |
 | `dao-api` | 使用 PO 的持久化查询与写入接口、必要的存储查询条件；不含业务编排，不依赖 `domain` 或具体 ORM 实现。 |
 | `dao-sparrow` / `dao-mybatis` | DAO 实现、SQL、Mapper、ORM 配置与数据操作；不含业务规则或 Controller，不依赖 `domain` 或 `infrastructure`。 |
 | `po` | 表映射对象、字段、主键与持久化元数据；不含领域业务行为。 |
@@ -52,12 +52,39 @@ flowchart TB
 - `adapter` 组装协议与领域对象，`infrastructure` 转换领域对象与 PO；简单用例可直接使用稳定协议契约，不强制复制等价对象。
 - 生产代码放在各模块 `src/main/java`；保留已有生成器要求的 PO 命名、Mapper 布局等，不为形式统一进行无关重命名。
 
+### 结构解析
+- Protocol 层
+  通常与client-api 一起打包给client 调用方，作为双方通信协议，由于采用严格分层架构设计，为方便domain层引用，将通信协议的数据部分抽离复用。该层主要包括
+    1. DTO 返回给调用方的数据对象
+    2. Param 传入到提供方的写参数
+    3. Query 传入到提供方的读参数
+- Domain核心业务层
+  不允许依赖其他基础设施，保证核心业务逻辑稳定。
+  核心业务逻辑层包括：
+1. 基本通信协议，由前端传入的Query Param 及DTO可以直接透传至Domain层，本架构依然采用简单贫血的MVC模式。
+2. 通用工具类
+   可以依赖常用的工具类，比如apache-commons包等
+3. 第三方rpc 接口
+   领域服务可以直接进行远程调用，该调用作为RPC的消费方，而非服务方。
+- Client API层
+  该层与 protocol 一起提供给调用方，作为调用方与消费方的通信协议。
+- Adapter 层
+  适配层为为第三方提供各种调用方式，包括但不限于(http controller \spring cloud\dubbo\mq consumer\schedule等。
+- Dao 层
+  直接面向数据库的操作 api ,由dao-impl 提供实现。一般不涉及业务逻辑，与业务逻辑隔离解耦。
+- 基础设施层
+1. 该层实现domain层中面向业务的repository接口
+2. Domain 层无法直接解决的业务问题，比如发邮件、加解密等需要依赖第三方具体技术库的问题。
+3. Domain 层的业务需要多种实现的场景。
+- MAIN组件
 ## 接口实现与运行时调用
 
-- **接口归属与实现：** `domain` 定义 Repository/Gateway，`infrastructure` 实现；`dao-api` 定义 DAO，选定的 DAO 模块实现。业务接口与持久化接口不是同一接口。
+- **接口归属与实现：** `domain` 定义 Repository，`infrastructure` 实现；`dao-api` 定义 DAO，选定的 DAO 模块实现。业务接口与持久化接口不是同一接口。
 - Repository 使用业务语义，输入输出为领域模型或稳定业务契约，不暴露 PO、Mapper、SQL、ORM 专有分页对象；DAO 使用 PO 表达存储数据。
 - **典型持久化请求的运行时调用：** Controller → domain 用例服务 → Repository 接口对应的实现 → DAO 接口对应的实现 → 数据库；结果沿调用链返回。这是调用关系，不是模块编译依赖。
 - 用例服务通过业务接口访问外部能力；Repository 实现访问持久化时只引用 DAO 接口，并完成对象转换。`main-spring-boot` 绑定两类接口的实现，不是每次请求经过的业务节点。
+
+
 
 ## Maven 与装配
 

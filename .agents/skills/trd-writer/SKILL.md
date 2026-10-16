@@ -50,6 +50,21 @@ description: 按指定技术需求规格说明书模板编写 TRD、任务 DSL �
 
 Markdown 排版、表格完整性与用户手动修改的保留统一遵守[公共文档排版规范](../develop-work-flow/SKILL.md#markdown-formatting)。
 
+<a id="api-first"></a>
+## API FIRST：接口先行
+
+技术设计先确定接口契约，再展开实现、存储与任务拆分。公共命名规范中的 Request 示例仅表达名称应清楚；本阶段新增通信对象按本节 Param / Query / DTO 执行。此规则由本 skill 执行，不要求安装架构 skill；沿用目标项目已经明确的契约与命名，不能从实现草稿反推未经确认的公共接口。
+
+- 写入参数命名为 `XxxParam`，读取条件命名为 `XxxQuery`，返回数据命名为 `XxxDTO`（含列表元素）；不用 Request、Response、Result、VO、Item、Summary 等后缀另建同义通信对象。已有统一 `Result<T>` 响应包装继续复用，与业务返回 DTO 区分；既有外部 SDK 类型、领域对象、PO 和传输资源不机械改成 DTO。对外及跨模块业务协议归 protocol，domain 可直接使用稳定契约，不复制等价对象、不强制增加 Gateway。
+- 每个公共或跨模块接口先列稳定 API 锚点、职责、调用方/提供方与模块、完整方法签名、入参类型和出参类型。HTTP 同时列方法、路径、请求头/查询串/请求体位置；事件接口列方向、事件类型、载荷类型及确认含义。动作与方法命名直接、明确、见字识意，遵守项目已有动作命名规则。
+- 每个契约对象逐字段明确名称、中文含义、完整类型、可空、默认值与说明；补齐必填/长度/取值校验、标识与时间单位、权限来源、幂等、排序分页、副作用、错误结果及兼容影响。已有精确定义用链接复用，不只列“主要字段”或方法名，也不用 Map/Object 掩盖未知契约。
+- 可信登录/授权上下文与客户端参数分开；身份不能由请求自报。异步调用显式衔接已有可信上下文，不假定线程上下文自动传播，不借接口设计另造认证协议。
+- DAO 与 Repository 按既有持久化边界使用 PO、领域对象或自有查询条件，不强行套用对外 DTO；无返回值说明 void 的完成语义，异步接口说明完成/失败回调，不能将网络写成功写成业务受理或接收确认。
+- 未决字段、枚举值或外部接口必须列出具体缺口、事实来源与影响的 API/任务；缺口解决前对应契约不能标记为实施就绪，不从旧草稿补回已撤销机制，也不自行分配事件值或标识。
+- 计划必须引用接口锚点，列出与契约同名的目标文件及契约测试。契约变更同步签名、字段表、示例、调用流程、场景及计划；旧代码名称只在兼容/迁移说明中保留。交付前检查命名、输入输出闭合、引用和调用方一致性，报告未决项，不能用结构校验代替方案批准。
+
+例如：`createConversation(CreateConversationParam param)` 返回 `ConversationCreatedDTO`；`listConversation(ListConversationQuery query)` 返回 `List<ConversationSummaryDTO>`。HTTP 层按项目约定包装为 `Result<ConversationCreatedDTO>` 或 `Result<List<ConversationSummaryDTO>>`。鉴权上下文、幂等请求头及字段字典仍须在对应接口中明确；示例不是可省略这些内容的完整签名。
+
 ## 测试设计
 
 在 TRD 的 test-strategy 锚点下按 [RIGHT-BICEP](../develop-work-flow/SKILL.md#right-bicep) 逐维考虑正确结果、边界、反向关系、独立交叉验证、错误条件与性能。写明适用场景/测试引用或不适用理由；轻量模式可紧凑说明并合并不适用项，无需六行表；需要性能验收时给出有依据的负载、环境和阈值/基线。技术与测试引用统一使用该需求目录（如 req-r01-profile）。
