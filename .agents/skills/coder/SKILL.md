@@ -7,6 +7,8 @@ description: 执行已获授权的任务 DSL，按功能小步完成测试、实
 
 共享执行规则来自 [develop-work-flow](../develop-work-flow/SKILL.md)。通过软链接加载时，先解析本文件的真实路径，仅用于定位技能包内的 skill、agents、脚本和模板；执行时不回源仓库读取设计文档。目标业务项目的需求、产品、技术、代码与证据仍是必要任务输入，应按本次范围读取。首次写入前执行主工作流的[需求分支准备](../develop-work-flow/SKILL.md#requirement-branch)，续做或阶段交接时核对并复用对应分支；只读审查不切换工作区。
 
+所有代码及设计中的名称遵守[直接、简单、明确、见字识意的统一命名规范](../develop-work-flow/SKILL.md#readable-naming)，覆盖API、类、接口、对象、方法和数据库表字段，不限于文档标题。
+
 # 按计划实施
 
 按[新需求独立成文](../develop-work-flow/SKILL.md#requirement-document-boundary)读取本次需求自己的文档与计划；跨需求仅按章节引用读取所需基线，不合并旧需求文档、任务或证据。下述编号延续和跨轮承接仅限同一需求。

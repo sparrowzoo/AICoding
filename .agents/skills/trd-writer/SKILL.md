@@ -7,6 +7,8 @@ description: 按指定技术需求规格说明书模板编写 TRD、任务 DSL �
 
 共享执行规则来自 [develop-work-flow](../develop-work-flow/SKILL.md)。通过软链接加载时，先解析本文件的真实路径，仅用于定位技能包内的 skill、agents、脚本和模板；执行时不回源仓库读取设计文档。目标业务项目的需求、产品、技术、代码与证据仍是必要任务输入，应按本次范围读取。首次写入前执行主工作流的[需求分支准备](../develop-work-flow/SKILL.md#requirement-branch)，续做或阶段交接时核对并复用对应分支；只读审查不切换工作区。
 
+所有代码及设计中的名称遵守[直接、简单、明确、见字识意的统一命名规范](../develop-work-flow/SKILL.md#readable-naming)，覆盖API、类、接口、对象、方法和数据库表字段，不限于文档标题。
+
 # 技术设计与计划
 
 先按[新需求独立成文](../develop-work-flow/SKILL.md#requirement-document-boundary)确定文档归属：每次新需求在独立需求目录重新编写当前阶段文档，重复内容用适用说明与具体章节链接复用。下文沿用目录、保留编号、原位更新与跨轮承接仅限同一需求的修订和继续执行，不适用于后续新需求；不能因为属于同一产品或修改存量功能而并入旧文档。
