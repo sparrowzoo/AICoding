@@ -44,6 +44,8 @@ description: 按指定技术需求规格说明书模板编写 TRD、任务 DSL �
 
 按[环境授权](../develop-work-flow/SKILL.md#environment-authorization)在 TRD 成组列出需要评估的环境动作、对象、影响、资源或费用、隔离及恢复与验证方式，供用户与具体方案一并确认。范围内的环境授权可以复用，超出范围重新确认；环境获批不等于业务阶段获批，不因准备测试环境提前实施未授权动作。
 
+Markdown 排版、表格完整性与用户手动修改的保留统一遵守[公共文档排版规范](../develop-work-flow/SKILL.md#markdown-formatting)。
+
 ## 测试设计
 
 在 TRD 的 test-strategy 锚点下按 [RIGHT-BICEP](../develop-work-flow/SKILL.md#right-bicep) 逐维考虑正确结果、边界、反向关系、独立交叉验证、错误条件与性能。写明适用场景/测试引用或不适用理由；轻量模式可紧凑说明并合并不适用项，无需六行表；需要性能验收时给出有依据的负载、环境和阈值/基线。技术与测试引用统一使用该需求目录（如 req-r01-profile）。
