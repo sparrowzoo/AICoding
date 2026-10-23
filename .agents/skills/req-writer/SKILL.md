@@ -3,7 +3,7 @@ name: req-writer
 description: 编写 BRD／需求依据，讲清全景业务架构、项目或需求定位、核心痛点、业务解决方案及依赖的人员团队、服务和数据；用于新需求梳理或调整，为完整 PRD 提供依据。
 ---
 
-文档首先遵守[清楚、适量、复用原则](../develop-work-flow/SKILL.md#documentation-principle)：仅展开本次需求及变化，未变内容引用既有章节；full/lite 仅表示文档布局，不表示需求性质、复杂度或篇幅，模板不要求机械填满。
+文档处理统一遵循[清楚、适量、复用](../develop-work-flow/SKILL.md#documentation-principle)、[模板结构](../develop-work-flow/SKILL.md#template-structure)及[最新结论与同步](../develop-work-flow/SKILL.md#decision-sync)；自查和评审按[全链路逻辑审查](../develop-work-flow/SKILL.md#logic-review)执行当前阶段适用项。本 skill 只维护本阶段特有要求，不复制共用规则正文。
 
 共享执行规则来自 [develop-work-flow](../develop-work-flow/SKILL.md)。通过软链接加载时，先解析本文件的真实路径，仅用于定位技能包内的 skill、agents、脚本和模板；执行时不回源仓库读取设计文档。目标业务项目的需求、产品、技术、代码与证据仍是必要任务输入，应按本次范围读取。首次写入前执行主工作流的[需求分支准备](../develop-work-flow/SKILL.md#requirement-branch)，续做或阶段交接时核对并复用对应分支；只读审查不切换工作区。
 

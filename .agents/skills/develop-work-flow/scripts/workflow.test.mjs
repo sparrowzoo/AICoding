@@ -361,6 +361,29 @@ test('design anchors must exist and source documents cannot cross symlink bounda
   const g = fixture(t); fs.renameSync(path.join(g.doc, 'technical.md'), path.join(g.root, 'shared.md')); fs.symlinkSync(path.join(g.root, 'shared.md'), path.join(g.doc, 'technical.md')); fails(g.run(), 'UNSAFE_PATH');
 });
 
+test('Git directory case variants are rejected in task files and design references', t => {
+  for (const name of ['.git', '.GIT', '.Git']) {
+    const f = fixture(t);
+    f.edit('plan.yaml', s => s.replace('src/cart/total.mjs', `${name}/config.md`));
+    fails(f.run(), 'UNSAFE_PATH');
+
+    const g = fixture(t);
+    fs.mkdirSync(path.join(g.root, name));
+    fs.writeFileSync(path.join(g.root, name, 'config.md'), '<a id="internal"></a>\nFixture only.\n');
+    g.edit('plan.yaml', s => s.replace('technical.md#api-01', `../../${name}/config.md#internal`));
+    fails(g.run(), 'UNSAFE_PATH');
+  }
+});
+
+test('Git directory protection permits ordinary github task and design paths', t => {
+  const f = fixture(t);
+  fs.mkdirSync(path.join(f.root, '.github'));
+  fs.writeFileSync(path.join(f.root, '.github', 'design.md'), '<a id="api"></a>\nValid design.\n');
+  f.edit('plan.yaml', s => s.replace('src/cart/total.mjs', '.github/workflows/check.yml')
+    .replace('technical.md#api-01', '../../.github/design.md#api'));
+  ok(f.run());
+});
+
 test('rejects unresolved teaching placeholders', t => {
   for (const placeholder of ['REPLACE_TEST_COMMAND', '<实际测试命令>', 'TBD']) {
     const f = fixture(t); f.edit('plan.yaml', s => s.replace('node --test tests/cart-total.test.mjs', placeholder)); fails(f.run(), 'PLACEHOLDER');
@@ -484,10 +507,83 @@ function setupFixture(t) {
   const marker = path.join(f.root, 'npm-called');
   fs.mkdirSync(deps); fs.mkdirSync(bin);
   fs.writeFileSync(path.join(bin, 'npm'), '#!/bin/sh\nprintf called > "$WORKFLOW_SETUP_NPM_MARKER"\n', { mode: 0o755 });
-  const run = () => spawnSync(process.execPath, [setup], { encoding: 'utf8', env: { ...process.env,
-    PATH: `${bin}${path.delimiter}${process.env.PATH}`, AI_CODING_WORKFLOW_DEPS: deps, WORKFLOW_SETUP_NPM_MARKER: marker } });
+  const run = (script = setup, destination = deps) => spawnSync(process.execPath, [script], { encoding: 'utf8', env: { ...process.env,
+    PATH: `${bin}${path.delimiter}${process.env.PATH}`, AI_CODING_WORKFLOW_DEPS: destination, WORKFLOW_SETUP_NPM_MARKER: marker } });
   return { ...f, deps, marker, run };
 }
+
+function copiedSetup(f) {
+  const bundle = path.join(f.root, '.agents');
+  const scripts = path.join(bundle, 'skills', 'develop-work-flow', 'scripts');
+  fs.mkdirSync(scripts, { recursive: true });
+  for (const name of ['setup.mjs', 'package.json', 'package-lock.json']) {
+    fs.copyFileSync(path.join(path.dirname(setup), name), path.join(scripts, name));
+  }
+  return { bundle, scripts, script: path.join(scripts, 'setup.mjs') };
+}
+
+test('setup rejects dependency directories throughout the shared skill bundle before writing', t => {
+  for (const relative of ['skills/develop-work-flow/deps', 'skills/another-skill/deps', 'agents/deps']) {
+    for (const exists of [false, true]) {
+      const f = setupFixture(t);
+      const source = copiedSetup(f);
+      const destination = path.join(source.bundle, relative);
+      if (exists) fs.mkdirSync(destination, { recursive: true });
+      const result = f.run(source.script, destination);
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /skill 源目录/);
+      assert.equal(fs.existsSync(destination), exists);
+      if (exists) assert.deepEqual(fs.readdirSync(destination), []);
+      assert.equal(fs.existsSync(f.marker), false);
+    }
+  }
+});
+
+test('setup resolves existing parent symlinks before creating a dependency directory', t => {
+  const f = setupFixture(t);
+  const source = copiedSetup(f);
+  const alias = path.join(f.root, 'source-alias');
+  fs.symlinkSync(source.scripts, alias);
+  const result = f.run(source.script, path.join(alias, 'new', 'deps'));
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /skill 源目录/);
+  assert.equal(fs.existsSync(path.join(source.scripts, 'new')), false);
+  assert.equal(fs.existsSync(f.marker), false);
+});
+
+test('setup rejects dangling parent symlinks without writes or npm invocation', t => {
+  const f = setupFixture(t);
+  const alias = path.join(f.root, 'missing-alias');
+  const missing = path.join(f.root, 'missing');
+  fs.symlinkSync(missing, alias);
+  assert.notEqual(f.run(setup, path.join(alias, 'deps')).status, 0);
+  assert.equal(fs.existsSync(missing), false);
+  assert.equal(fs.existsSync(f.marker), false);
+});
+
+test('setup resolves a parent step after a symlink before checking the source boundary', t => {
+  const f = setupFixture(t);
+  const source = copiedSetup(f);
+  const alias = path.join(f.root, 'source-alias');
+  fs.symlinkSync(source.scripts, alias);
+  const result = f.run(source.script, `${alias}/../deps`);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /skill 源目录/);
+  assert.equal(fs.existsSync(path.join(source.scripts, '..', 'deps')), false);
+  assert.equal(fs.existsSync(f.marker), false);
+});
+
+test('setup permits a new external directory reached through an existing parent symlink', t => {
+  const f = setupFixture(t);
+  const source = copiedSetup(f);
+  const external = path.join(f.root, '.agents-external');
+  fs.mkdirSync(external);
+  const alias = path.join(f.root, 'external-alias');
+  fs.symlinkSync(external, alias);
+  ok(f.run(source.script, path.join(alias, 'new', 'deps')));
+  assert.equal(JSON.parse(fs.readFileSync(path.join(external, 'new', 'deps', 'package.json'), 'utf8')).name, 'ai-coding-workflow');
+  assert.equal(fs.readFileSync(f.marker, 'utf8'), 'called');
+});
 
 test('setup refuses a different package before overwriting files or invoking npm', t => {
   const f = setupFixture(t);

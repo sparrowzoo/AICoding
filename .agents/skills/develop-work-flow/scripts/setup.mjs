@@ -9,6 +9,18 @@ function statIfPresent(target) {
   try { return fs.lstatSync(target); } catch (error) { if (error.code === 'ENOENT') return undefined; throw error; }
 }
 
+// Resolve existing parents too: the destination itself may not exist yet.
+function physicalPath(target) {
+  // Native realpath preserves filesystem semantics for a symlink followed by '..'.
+  let existing = target;
+  const missing = [];
+  while (!statIfPresent(existing)) {
+    missing.unshift(path.basename(existing));
+    existing = path.dirname(existing);
+  }
+  return path.resolve(fs.realpathSync.native(existing), ...missing);
+}
+
 if (process.argv.includes('--help')) {
   console.log('node setup.mjs\n将锁定的依赖安装到 ~/.local/share/ai-coding-workflow/；需要写入用户目录和 npm 网络权限。\nAI_CODING_WORKFLOW_DEPS 可指定绝对临时目录用于测试。不向 skill 源目录安装 node_modules。');
 } else {
@@ -16,12 +28,15 @@ if (process.argv.includes('--help')) {
     if (process.argv.length > 2) throw new Error('不支持额外参数，请使用 --help。');
     const destination = process.env.AI_CODING_WORKFLOW_DEPS || path.join(os.homedir(), '.local/share/ai-coding-workflow');
     if (!path.isAbsolute(destination)) throw new Error('AI_CODING_WORKFLOW_DEPS 必须为绝对路径。');
-    const source = path.dirname(fileURLToPath(import.meta.url));
+    const source = fs.realpathSync(path.dirname(fileURLToPath(import.meta.url)));
+    // Shared package layout: .agents/skills/develop-work-flow/scripts/.
+    const sharedSource = path.resolve(source, '../../..');
     const directoryStat = statIfPresent(destination);
     if (directoryStat?.isSymbolicLink()) throw new Error('依赖目录不能是软链接。');
     if (directoryStat && !directoryStat.isDirectory()) throw new Error('依赖目标必须是目录。');
-    const physicalDestination = directoryStat ? fs.realpathSync(destination) : path.resolve(destination);
-    if (physicalDestination === source || physicalDestination.startsWith(`${source}${path.sep}`)) throw new Error('依赖目录不能位于 skill 源目录内。');
+    const physicalDestination = physicalPath(destination);
+    const relativeDestination = path.relative(sharedSource, physicalDestination);
+    if (relativeDestination !== '..' && !relativeDestination.startsWith(`..${path.sep}`) && !path.isAbsolute(relativeDestination)) throw new Error('依赖目录不能位于共享 skill 源目录内。');
     // Preflight both manifests before copying either one, including dangling symlinks.
     for (const name of ['package.json', 'package-lock.json']) {
       const target = path.join(destination, name);

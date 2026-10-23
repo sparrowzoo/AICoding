@@ -1,0 +1,109 @@
+{
+  "time": "2026-10-23T09:20:27.077926+00:00",
+  "root": "AICoding",
+  "head": "27fb650dc7b0b5235801157e34638b8c19cf902e",
+  "branch": "master",
+  "files": [
+    {
+      "path": ".agents/agents/code-reviewer/AGENT.md",
+      "sha256": "2a58daadbc36a9a1906df0714a5d1b95ee3f527ff45abe9ff02169e78d0a17e5"
+    },
+    {
+      "path": ".agents/agents/doc-reviewer/AGENT.md",
+      "sha256": "a1ee36732c64134c401b47d46217a20ebe1c420bff592005789a1bb495be810c"
+    },
+    {
+      "path": ".agents/skills/coder/SKILL.md",
+      "sha256": "9ec28096c8c5dbcdd55d4fd35f1ba7980d1f9056c5ad950d464206580209adf8"
+    },
+    {
+      "path": ".agents/skills/develop-work-flow/SKILL.md",
+      "sha256": "6293ec6f527174cdc70c3970ba1aaaff03775b1ed15d56c024ea5858ca281a14"
+    },
+    {
+      "path": ".agents/skills/develop-work-flow/assets/evidence.md",
+      "sha256": "c1d2617f7b763fe4d628c8fec2229119b2f7229a9963607c73d6b9bed428b4ef"
+    },
+    {
+      "path": ".agents/skills/develop-work-flow/assets/feature/acceptance.feature",
+      "sha256": "c77737793ca99935ee422b90147a5c27d503f6f90d58ee84c8a77786aeb2abcb"
+    },
+    {
+      "path": ".agents/skills/develop-work-flow/assets/feature/plan.yaml",
+      "sha256": "410ce6c915650d86cf2fec485361ebf8cb7368912b5116a4b76b6df54d90650b"
+    },
+    {
+      "path": ".agents/skills/develop-work-flow/assets/feature/product.md",
+      "sha256": "d84482aa217d56589a5c0fa7120d995de9e6437d443f1f22b20ac183314826de"
+    },
+    {
+      "path": ".agents/skills/develop-work-flow/assets/feature/requirement.md",
+      "sha256": "fe349e8d4b8a672e24c10611d0b5537575419cd0f13ba78abc0b9d678cdfb45e"
+    },
+    {
+      "path": ".agents/skills/develop-work-flow/assets/feature/technical.md",
+      "sha256": "d70375d4248ffbc3d6bb4ab0626a2b8622de058ebe52ef0ef1f6410203f41f63"
+    },
+    {
+      "path": ".agents/skills/develop-work-flow/assets/lite/plan.yaml",
+      "sha256": "5b27d29bad122c5854fe375d7b2f4a6cb0e5c6b40c42c43b2161e48811be14c4"
+    },
+    {
+      "path": ".agents/skills/develop-work-flow/assets/lite/technical.md",
+      "sha256": "5ea79508e2ab3c829d58bc8c853eb0ed1ae68b46ad1403f907a1ed59d3af0fbb"
+    },
+    {
+      "path": ".agents/skills/develop-work-flow/scripts/package-lock.json",
+      "sha256": "d58bfa78ccd77ac68304def47e4294656ba8e167de1a45225c01b0c69c8e59d8"
+    },
+    {
+      "path": ".agents/skills/develop-work-flow/scripts/package.json",
+      "sha256": "fd87775e406fa0455488920fd7b2b8c00c7ca6a4596ecdfd2823ffeceba25abb"
+    },
+    {
+      "path": ".agents/skills/develop-work-flow/scripts/setup.mjs",
+      "sha256": "875b291d1b2d5f58dd9e4657e57eb802855695fa9b92359d37b91235eb6980db"
+    },
+    {
+      "path": ".agents/skills/develop-work-flow/scripts/workflow.mjs",
+      "sha256": "f9110a56abe497e059efaf006e914bb17683abb6c0ec50bb376bc3f0715bbb09"
+    },
+    {
+      "path": ".agents/skills/develop-work-flow/scripts/workflow.test.mjs",
+      "sha256": "1829a8c1bae0f1be471712db72be408256a257d74a7ef50459698734c7b59075"
+    },
+    {
+      "path": ".agents/skills/e2e-validator/SKILL.md",
+      "sha256": "7234359baedee9ad4508c7eff1fb2fae3836745b701bcfdbf4922e81c2735a06"
+    },
+    {
+      "path": ".agents/skills/prd-writer/SKILL.md",
+      "sha256": "2714d409e8920788a06ed321a0012b6f5cff0be9b320a679927eec88ccc3df2f"
+    },
+    {
+      "path": ".agents/skills/req-writer/SKILL.md",
+      "sha256": "1c0ea59ab321cda96b9e4542ec68ee056c395c5be57b7f122aacd7dfdd04387c"
+    },
+    {
+      "path": ".agents/skills/task-monitor/SKILL.md",
+      "sha256": "73fb23789cdf2daa579294d56a5458f68438d8ed8c2ba441c61abc18acc831ee"
+    },
+    {
+      "path": ".agents/skills/task-monitor/scripts/send-email.py",
+      "sha256": "d5847438ea19b7c42d2aef3f836dde28f02756377b602e99636290d81910d8b7"
+    },
+    {
+      "path": ".agents/skills/task-monitor/scripts/session-start.sh",
+      "sha256": "191e45daeca3419c97300e052c6ece2aee94ad0b4eeabcdf7df154ec2f79d632"
+    },
+    {
+      "path": ".agents/skills/trd-writer/SKILL.md",
+      "sha256": "d25549e9f3894d9a1df2a0214dd64fa26c906a7f6c98734694627367096fefeb"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "7e0fe5745890d673f4425dbfa877459c6ec799de220b65cd11c8fd49eb5b21a7"
+    }
+  ],
+  "scope_exclusion": "用户明确排除 my；不纳入问题、评分或能力缺口。"
+}

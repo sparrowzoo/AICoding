@@ -1,6 +1,6 @@
 # AI Coding 维护约定
 
-- 文档大前提：适量且清楚表达本次需求，不为文档而文档；迭代未变内容引用此前具体章节，不重复大篇幅。full/lite 决定必要文件与职责，不决定篇幅；模板仅作适用内容检查，可合并或省略无关章节与空表，关键变化、契约、验收及授权不能省略。详见主 SKILL 的 documentation-principle。
+- 文档格式、模板结构及内容省略统一引用[文档原则](.agents/skills/develop-work-flow/SKILL.md#documentation-principle)和[模板规则](.agents/skills/develop-work-flow/SKILL.md#template-structure)；结论更新与历史文档同步引用[最新结论规则](.agents/skills/develop-work-flow/SKILL.md#decision-sync)，编写自查与评审引用[全链路逻辑审查](.agents/skills/develop-work-flow/SKILL.md#logic-review)。共用规则仅在主 SKILL 对应章节维护。
 
 - 本仓库完整的工作流执行规则与 DSL 契约统一维护于 `.agents/skills/develop-work-flow/SKILL.md`；技能执行不读取源仓库 `design-docs/`、README 等外部说明。业务项目的需求、代码、测试与证据仍作为任务输入按范围读取。
 - `design-docs/` 保留 `workflow.md` 与 `AI Coding 设计说明.md`，分别维护执行规范索引/维护说明、架构/实现边界/设计依据；不复制主 SKILL 的执行规则正文，也不把维护文档写入业务项目。

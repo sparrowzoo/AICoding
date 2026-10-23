@@ -62,7 +62,7 @@ function inside(root, absolute) {
 function safePath(root, absolute) {
   if (!inside(root, absolute)) fail('UNSAFE_PATH', `路径越过项目根：${absolute}`);
   const parts = path.relative(root, absolute).split(path.sep).filter(Boolean);
-  if (parts.includes('.git')) fail('UNSAFE_PATH', '.git 路径不允许作为工作流输入或输出。');
+  if (parts.some(part => part.toLowerCase() === '.git')) fail('UNSAFE_PATH', '.git 路径不允许作为工作流输入或输出。');
   let current = root;
   for (let i = 0; i < parts.length; i++) {
     current = path.join(current, parts[i]);
@@ -79,7 +79,7 @@ function safePath(root, absolute) {
 function projectFile(root, value) {
   if (!text(value) || path.isAbsolute(value) || value.includes('\\') || /[\x00-\x1f]/.test(value)) fail('UNSAFE_PATH', `非法项目相对路径：${value}`);
   const parts = value.split('/');
-  if (parts.some(part => ['', '.', '..', '.git'].includes(part))) fail('UNSAFE_PATH', `文件路径不可包含空段、点路径或 .git：${value}`);
+  if (parts.some(part => ['', '.', '..', '.git'].includes(part.toLowerCase()))) fail('UNSAFE_PATH', `文件路径不可包含空段、点路径或 .git：${value}`);
   return safePath(root, path.resolve(root, value));
 }
 // Call only outside an active fence. Fence info and contents are literal code,

@@ -1,0 +1,44 @@
+{
+  "note": "临时目录路径统一替换为 REVIEW_TEMP；退出码与结果保持实际值。setup 使用假 npm，仅在临时副本中写入。",
+  "results": [
+    {
+      "case": "skill-sibling",
+      "exit": 0,
+      "npmCalled": true,
+      "manifestWritten": true,
+      "physicalDestination": "REVIEW_TEMP/reproductions/skill-sibling/skill/deps",
+      "stdout": "依赖目录：REVIEW_TEMP/reproductions/skill-sibling/skill/deps",
+      "stderr": ""
+    },
+    {
+      "case": "parent-symlink",
+      "exit": 0,
+      "npmCalled": true,
+      "manifestWritten": true,
+      "physicalDestination": "REVIEW_TEMP/reproductions/parent-symlink/skill/scripts/deps",
+      "stdout": "依赖目录：REVIEW_TEMP/reproductions/parent-symlink/skill/scripts/deps",
+      "stderr": ""
+    },
+    {
+      "case": "uppercase-task-file",
+      "caseInsensitive": true,
+      "exit": 0,
+      "stdout": "OK validate req-r01-check: 1 tasks；仅结构/引用校验，未执行命令。",
+      "stderr": ""
+    },
+    {
+      "case": "uppercase-design-reference",
+      "caseInsensitive": true,
+      "exit": 0,
+      "stdout": "OK validate req-r01-check: 1 tasks；仅结构/引用校验，未执行命令。",
+      "stderr": ""
+    },
+    {
+      "case": "lowercase-control",
+      "caseInsensitive": true,
+      "exit": 1,
+      "stdout": "",
+      "stderr": "ERROR [UNSAFE_PATH] 文件路径不可包含空段、点路径或 .git：.git/config.md"
+    }
+  ]
+}

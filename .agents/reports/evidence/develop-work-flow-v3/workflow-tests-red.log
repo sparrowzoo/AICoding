@@ -1,0 +1,72 @@
+✖ Git directory case variants are rejected in task files and design references (352.543333ms)
+✔ Git directory protection permits ordinary github task and design paths (89.139959ms)
+✖ setup rejects dependency directories throughout the shared skill bundle before writing (859.209167ms)
+✖ setup resolves existing parent symlinks before creating a dependency directory (234.820834ms)
+✔ setup rejects dangling parent symlinks without writes or npm invocation (46.417125ms)
+✔ setup permits a new external directory reached through an existing parent symlink (229.0945ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 3
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1873.768834
+
+✖ failing tests:
+
+test at workflow.test.mjs:364:1
+✖ Git directory case variants are rejected in task files and design references (352.543333ms)
+  AssertionError [ERR_ASSERTION]: OK validate cart-total: 2 tasks；仅结构/引用校验，未执行命令。
+
+      at fails (file://AICoding/.agents/skills/develop-work-flow/scripts/workflow.test.mjs:79:10)
+      at TestContext.<anonymous> (file://AICoding/.agents/skills/develop-work-flow/scripts/workflow.test.mjs:368:5)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 0,
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }
+
+test at workflow.test.mjs:525:1
+✖ setup rejects dependency directories throughout the shared skill bundle before writing (859.209167ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be strictly unequal to: 0
+      at TestContext.<anonymous> (file://AICoding/.agents/skills/develop-work-flow/scripts/workflow.test.mjs:533:14)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at node:internal/test_runner/test:1305:31
+      at node:internal/process/task_queues:151:7
+      at AsyncResource.runInAsyncScope (node:async_hooks:227:14)
+      at AsyncResource.runMicrotask (node:internal/process/task_queues:148:8) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 0,
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }
+
+test at workflow.test.mjs:542:1
+✖ setup resolves existing parent symlinks before creating a dependency directory (234.820834ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" to be strictly unequal to: 0
+      at TestContext.<anonymous> (file://AICoding/.agents/skills/develop-work-flow/scripts/workflow.test.mjs:548:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 0,
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }
