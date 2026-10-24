@@ -7,6 +7,8 @@ description: 用于用户要求写代码、代码落地、开发、实现功能�
 
 共享执行规则来自 [develop-work-flow](../develop-work-flow/SKILL.md)。通过软链接加载时，先解析本文件的真实路径，仅用于定位技能包内的 skill、agents、脚本和模板；执行时不回源仓库读取设计文档。目标业务项目的需求、产品、技术、代码与证据仍是必要任务输入，应按本次范围读取。首次写入前执行主工作流的[需求分支准备](../develop-work-flow/SKILL.md#requirement-branch)，续做或阶段交接时核对并复用对应分支；只读审查不切换工作区。
 
+**开始接口设计、编码、重构或代码审查前，必须读取并严格执行共享[SOLID与接口职责规则](../develop-work-flow/SKILL.md#solid-interface-design)；涉及Java实体时同时执行[实体统一@Data及PO/POJO规则](../develop-work-flow/SKILL.md#entity-lombok-po)。** 按该节核对单一职责、HTTP Param/Query/DTO与消息Event边界、既有能力复用和实际返回语义，沿完整调用链修正，不把原则复制到业务TRD，也不等用户逐项指出。
+
 所有代码及设计中的名称遵守[直接、简单、明确、见字识意的统一命名规范](../develop-work-flow/SKILL.md#readable-naming)，覆盖API、类、接口、对象、方法和数据库表字段，不限于文档标题。
 
 类、方法、参数和变量按长期稳定的业务职责命名，读名字就能知道用途，不用 `Mvp`、`V1`、`V2` 等阶段或版本标签给会持续迭代的业务类命名。例如通用会话接入类不命名为 `MvpSessionController`，避免下次迭代批量改名。新增业务代码以可读性为先，尽量使用 Java 8 之前的直白语法；避免为简短而使用 lambda、Stream、`var`、record、模式匹配或新式 switch 等语法糖。确有必要时写清楚意图；不为语法风格单独重写无关存量代码。
