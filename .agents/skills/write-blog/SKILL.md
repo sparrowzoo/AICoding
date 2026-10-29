@@ -13,10 +13,10 @@ SEO。
 
 - 文件：`content/<slug>.json`；`slug` 仅允许 `[A-Za-z0-9_-]+`（kebab-case，如 `spring-boot-static-resources`）。
 - 访问：`GET /article/{slug}`（详情页）、`GET /article/{slug}/og.png`（分享图）。
-- 系统字段（`articleUrl` / `publishedAt` / `updatedAt` / `publishedDate` / `updatedDate` / `ogImageUrl`）由后端注入，**不要写进
+- 系统字段（`articleUrl` / `publishedDate` / `updatedDate` / `ogImageUrl`）由后端注入，**不要写进
   JSON**。
 
-## JSON 契约（13 个 AI 字段 + status）
+## JSON 契约（13 个内容字段 + status + publishedAt + updatedAt）
 
 | 字段            | 类型         | 渲染方式                          | 说明                                           |
 |---------------|------------|-------------------------------|----------------------------------------------|
@@ -33,8 +33,14 @@ SEO。
 | `summary`     | HTML 片段    | sanitize 后 `th:utext`         | 总结归纳                                         |
 | `sources`     | HTML 片段    | sanitize 后 `th:utext`         | 参考资料                                         |
 | `keywords`    | `string[]` | join 进 meta + `article:tag`   | 关键词数组                                        |
+| `publishedAt` | 带时区的 ISO 时间 | 后端格式化 | 首次发布时间，后续修改保持不变 |
+| `updatedAt` | 带时区的 ISO 时间 | 后端格式化 | 最近修改时间，新文章与发布时间相同 |
 | `status`      | 文本         | —                             | 固定 `"published"`                             |
 
+- `publishedAt` / `updatedAt` 必须写入 JSON，使用带时区的 ISO 8601 完整时间，推荐 UTC `Z`，如 `2026-10-29T02:30:00Z`。
+- 新建文章：读取当前实际时间，两个字段填写相同值；不要照抄模板示例时间。
+- 修改文章：保留已有 `publishedAt`，仅将 `updatedAt` 更新为本次修改的实际时间。
+- 迁移没有日期的历史文章：在修改文件之前读取并保存文件创建时间与最后修改时间，分别写入 `publishedAt` 与 `updatedAt`；已有日期不得覆盖。创建时间不可获取时报告缺失，不用修改时间或当前时间冒充。
 - 文本字段（title/description/category/subcategory/topic/audience）保持原始值，由模板 `th:text` 转义，**不要放 HTML**。
 - HTML 字段（conclusion/background/summary/sources 与 details 各 `content`）写 HTML 片段，sanitize 后输出。
 - `details` 每个章节的 `title` 是纯文本（模板转义渲染），`content` 是 HTML 片段；章节按数组顺序自动生成锚点 `#details-1`、
@@ -64,7 +70,9 @@ SEO。
   "keywords": [
     "…"
   ],
-  "status": "published"
+  "status": "published",
+  "publishedAt": "2026-10-29T02:30:00Z",
+  "updatedAt": "2026-10-29T02:30:00Z"
 }
 ```
 
@@ -94,10 +102,11 @@ HTML 组件（表格、提示、术语、代码块）写法见 `references/rules
 ## 验证
 
 1. `python3 -c "import json; json.load(open('content/<slug>.json'))"` 校验 JSON 合法。
-2. 后端已在跑时，`curl -s -o /dev/null -w '%{http_code}' localhost:8888/article/<slug>` 应返回 200。
-3. `curl -s -o /dev/null -w '%{http_code} %{content_type}' localhost:8888/article/<slug>/og.png` 应返回 `200 image/png`
+2. 检查日期字段可解析、均带时区，`updatedAt` 不早于 `publishedAt`；修改文章时确认 `publishedAt` 未变。
+3. 后端已在跑时，`curl -s -o /dev/null -w '%{http_code}' localhost:8888/article/<slug>` 应返回 200。
+4. `curl -s -o /dev/null -w '%{http_code} %{content_type}' localhost:8888/article/<slug>/og.png` 应返回 `200 image/png`
    ，且页面 `og:image` 指向该 PNG（而非 `/webjars/default-share.png`）即 hero 有效。
-4. 确认渲染页中关键组件（表格、codebox、note、章节锚点 `#details-N`）都在、无被剥空的内容。
+5. 确认渲染页中关键组件（表格、codebox、note、章节锚点 `#details-N`）都在、无被剥空的内容。
 
 ## 常见错误
 
@@ -107,7 +116,7 @@ HTML 组件（表格、提示、术语、代码块）写法见 `references/rules
 | hero 用 `<defs>`/`<linearGradient>`/`url(#…)`        | 被整体剥离                 | 纯色 `fill`，禁 defs/gradient/url() |
 | HTML 用 `style`/`scope`/`tabindex`/`role`/`aria-*`   | 属性被剥                  | 只用 `class` 及 rules.md 允许的属性     |
 | 字段名写错或漏 `status`                                    | 反序列化为 null/空          | 对照上表逐字段                         |
-| 把系统字段（articleUrl/日期）写进 JSON                         | 被忽略（record 无此字段）      | 只写 13+1 字段                      |
+| 把派生字段（articleUrl/publishedDate/updatedDate/ogImageUrl）写进 JSON                         | 被忽略（record 无此字段）      | 写入 13 个内容字段、status、publishedAt、updatedAt                      |
 | 写 HTML 文件而非 JSON                                    | 与 write-doc 混淆        | 产物是 `content/<slug>.json`       |
 
 完整规则与组件示例见 `references/rules.md`。
