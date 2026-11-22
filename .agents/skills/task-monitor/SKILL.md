@@ -1,6 +1,6 @@
 ---
 name: task-monitor
-description: Use when the session runs unattended under --dangerously-skip-permissions (marked by CLAUDE_UNATTENDED=1) to notify the user at key checkpoints and failures while preserving stage and operation authorization.
+description: 仅在以 claude --dangerously-skip-permissions 启动并设置 CLAUDE_UNATTENDED=1 的 Claude 无人值守会话中监控任务。召回关键词：无人值守任务监控、关键节点发邮件、高风险操作前提醒、连续失败两次提醒我、任务完成后发邮件汇总。按已授权的收件人和内容范围发送。
 ---
 
 # 任务监控（无人值守模式）
@@ -11,7 +11,9 @@ description: Use when the session runs unattended under --dangerously-skip-permi
 
 触发依赖：启动脚本 `claude-by-pass-startup.sh` 导出 `CLAUDE_UNATTENDED=1`；SessionStart hook 配置在**用户全局** `~/.claude/settings.json`，通过绝对路径调用本 skill 的 `scripts/session-start.sh`。该脚本检测到 `CLAUDE_UNATTENDED` 时输出 Claude Code 期望的 JSON 注入格式（`hookSpecificOutput.additionalContext`，**不是纯文本**，纯文本不会被注入）。注意：`.agents/settings.json` 经 `.claude → .agents` 软链接不会被读取，hook 配置不能放共享目录，只能放用户全局。
 
-核心原则：无人值守关闭的是工具级逐次权限提示，不扩大用户授权。AI 仅在**当前已授权环节与范围内**自主推进，并在关键节点提醒用户；[环节交付与授权](../develop-work-flow/SKILL.md#stage-authorization)、[重大设计边界确认](../develop-work-flow/SKILL.md#design-boundary)和[环境操作授权](../develop-work-flow/SKILL.md#environment-authorization)统一遵守主工作流，不因无人值守而豁免。同一对象与范围的有效授权直接复用，新增或改变范围时确认受影响部分。
+研发工作流内的通知时机和发送范围见[工作流通知](references/notifications.md#notify)。本页另列无人值守模式的启动和高风险提醒。发送前核对用户已授权的收件人、用途和内容范围。
+
+核心原则：无人值守关闭的是工具级逐次权限提示，不扩大用户授权。AI 仅在**当前已授权环节与范围内**自主推进，并在关键节点提醒用户；[环节交付与授权](../develop-work-flow/references/authorization.md#stage-authorization)、[重大设计边界确认](../trd-writer/references/design-decisions.md#design-boundary)和[环境操作授权](../develop-work-flow/references/authorization.md#environment-authorization)统一遵守主工作流，不因无人值守而豁免。同一对象与范围的有效授权直接复用，新增或改变范围时确认受影响部分。
 
 ## 关键节点
 
@@ -22,7 +24,7 @@ description: Use when the session runs unattended under --dangerously-skip-permi
 | 连续失败两次 | 同一任务连续两次失败或被打回 | 邮件说明原因与下一步 + 标记受阻 + **停下等待确认** |
 | 全部完成 | 全部任务结束并完成验收 | 邮件汇总：任务状态计数、未决项、commit/push/merge 状态 |
 
-非上述邮件节点不额外发送邮件；各环节交付仍须报告结论、产物与下一环节范围，并按公共规则取得授权，不能因未列入邮件表而跳过。需要等待确认时不继续对应部分，其余独立工作仅在各自已授权范围内继续；邮件通知不代表用户批准。
+非上述邮件节点不额外发送邮件；各环节交付仍须报告结论、产物与下一环节范围，并按阶段授权取得确认，不能因未列入邮件表而跳过。需要等待确认时不继续对应部分，其余独立工作仅在各自已授权范围内继续；邮件通知不代表用户批准。
 
 ## 通知方式
 

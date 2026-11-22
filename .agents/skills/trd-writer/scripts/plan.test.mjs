@@ -6,8 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
-const cli = fileURLToPath(new URL('./workflow.mjs', import.meta.url));
-const setup = fileURLToPath(new URL('./setup.mjs', import.meta.url));
+const cli = fileURLToPath(new URL('./plan.mjs', import.meta.url));
 const yaml = `schema: 1
 feature: cart-total
 iteration: basket-1
@@ -60,7 +59,6 @@ function fixture(t, featureName = 'cart-total') {
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const doc = path.join(root, 'doc', featureName);
   fs.mkdirSync(doc, { recursive: true });
-  fs.writeFileSync(path.join(doc, 'requirement.md'), '# 购物车需求\n<a id="R01"></a>\n计算金额。\n<a id="R02"></a>\n显示金额。\n');
   fs.writeFileSync(path.join(doc, 'product.md'), '# 产品行为\n<a id="R01"></a>\n按数量累加。\n<a id="R02"></a>\n页面显示。\n');
   fs.writeFileSync(path.join(doc, 'technical.md'), '# 接口设计\n<a id="api-01"></a>\n计算接口。\n<a id="api-02"></a>\n展示接口。\n');
   fs.writeFileSync(path.join(doc, 'acceptance.feature'), feature);
@@ -69,7 +67,7 @@ function fixture(t, featureName = 'cart-total') {
     const p = path.join(doc, name);
     fs.writeFileSync(p, transform(fs.readFileSync(p, 'utf8')));
   };
-  const run = (command = 'validate', env = {}) => spawnSync(process.execPath, [cli, command, '--project', root, '--feature', featureName], {
+  const run = (command = 'validate', env = {}, flags = []) => spawnSync(process.execPath, [cli, command, ...flags, '--project', root, '--feature', featureName], {
     encoding: 'utf8', env: { ...process.env, ...env },
   });
   return { root, doc, edit, run };
@@ -82,7 +80,7 @@ function fails(result, code) {
 
 function liteFixture(t) {
   const f = fixture(t);
-  for (const name of ['requirement.md', 'product.md', 'acceptance.feature']) fs.unlinkSync(path.join(f.doc, name));
+  for (const name of ['product.md', 'acceptance.feature']) fs.unlinkSync(path.join(f.doc, name));
   f.edit('plan.yaml', s => s.replace('schema: 1', 'schema: 1\nmode: lite'));
   f.edit('technical.md', s => `${s}\n<a id="R01"></a>\n按数量计算金额。\n<a id="R02"></a>\n显示计算结果。\n<a id="acceptance"></a>\n\`\`\`gherkin\n${feature}\`\`\`\n`);
   return f;
@@ -110,7 +108,7 @@ test('full mode is default or explicit and never inferred from missing files', t
     const f = fixture(t);
     if (explicit) f.edit('plan.yaml', s => s.replace('schema: 1', 'schema: 1\nmode: full'));
     ok(f.run('validate')); ok(f.run('render')); ok(f.run('status')); ok(f.run('check'));
-    assert.match(fs.readFileSync(path.join(f.doc, 'plan.md'), 'utf8'), /\[R01\]\(requirement\.md#R01\) \/ \[产品行为\]\(product\.md#R01\)/);
+    assert.match(fs.readFileSync(path.join(f.doc, 'plan.md'), 'utf8'), /\[R01\]\(product\.md#R01\)/);
     f.edit('product.md', s => s.replace('id="R01"', 'id="R09"'));
     fails(f.run(), 'REFERENCE_INVALID');
   }
@@ -119,6 +117,23 @@ test('full mode is default or explicit and never inferred from missing files', t
     f.edit('plan.yaml', s => s.replace('mode: lite\n', modeLine));
     fails(f.run(), 'REFERENCE_INVALID');
   }
+});
+
+test('full plans ignore historical requirement.md and link to the current PRD', t => {
+  const f = fixture(t);
+  ok(f.run('validate')); ok(f.run('render')); ok(f.run('status')); ok(f.run('check'));
+  const generated = name => fs.readFileSync(path.join(f.doc, name), 'utf8');
+  const plan = generated('plan.md');
+  const status = generated('task-status.md');
+  assert.match(plan, /\[R01\]\(product\.md#R01\)/);
+  assert.doesNotMatch(plan, /requirement\.md/);
+
+  const historical = 'REPLACE_OUTDATED\n<a id="R03"></a>\n';
+  fs.writeFileSync(path.join(f.doc, 'requirement.md'), historical);
+  ok(f.run('check')); ok(f.run('render')); ok(f.run('status'));
+  assert.equal(generated('plan.md'), plan);
+  assert.equal(generated('task-status.md'), status);
+  assert.equal(generated('requirement.md'), historical);
 });
 
 test('mode rejects unknown strings and non-string YAML values before selecting sources', t => {
@@ -211,7 +226,7 @@ test('lite may omit acceptance only when every task has no scenarios and an expl
 test('lite hashes authority and referenced design files while ignoring absent-mode documents', t => {
   const f = liteFixture(t);
   ok(f.run('render')); ok(f.run('status')); ok(f.run('check'));
-  for (const name of ['requirement.md', 'product.md', 'acceptance.feature']) fs.writeFileSync(path.join(f.doc, name), 'REPLACE_IGNORED\n');
+  for (const name of ['product.md', 'acceptance.feature']) fs.writeFileSync(path.join(f.doc, name), 'REPLACE_IGNORED\n');
   ok(f.run('check'));
   f.edit('technical.md', s => s.replace('按数量计算金额。', '按数量计算金额，禁止负数。'));
   fails(f.run('check'), 'STALE_PLAN');
@@ -251,16 +266,65 @@ test('lite preserves completion evidence and source/output path protection', t =
   assert.equal(fs.existsSync(outside), false);
 });
 
-test('help explains setup without loading dependencies', () => {
+test('help points to README installation instructions without loading dependencies', () => {
   const result = spawnSync(process.execPath, [cli, '--help'], { encoding: 'utf8', env: { ...process.env, AI_CODING_WORKFLOW_DEPS: '/does-not-exist' } });
   ok(result);
-  assert.match(result.stdout, /setup\.mjs/);
+  assert.match(result.stdout, /readme\.md.*接入业务项目/i);
   assert.match(result.stdout, /不执行|never executes/i);
 });
 
 test('real Gherkin parser supports Chinese, Rule inherited tags, Outline and unplanned history', t => {
   ok(fixture(t).run());
 });
+
+for (const [mode, createFixture, source] of [
+  ['full', fixture, 'acceptance.feature'], ['lite', liteFixture, 'technical.md'],
+]) {
+  test(`${mode} accepts Chinese Gherkin parameters bound by the outline's Examples`, t => {
+    const f = createFixture(t);
+    f.edit(source, s => s.replaceAll('price', '实际单价')
+      .replace('累加数量', '累加单价 <实际单价>')
+      .replace('当 购买', '  | 单价 | <实际单价> |\n      当 购买')
+      .replace('那么 总额为', '  """\n        <实际单价>\n        """\n      那么 总额为'));
+    ok(f.run());
+    f.edit(source, s => s.split('\n').map(line => line.replaceAll('实际单价', line.trimStart().startsWith('|') ? '实际单价\\|元' : '实际单价|元')).join('\n'));
+    ok(f.run());
+    f.edit(source, s => s.replace('场景大纲: 累加单价', '场景: 累加单价'));
+    ok(f.run());
+  });
+
+  test(`${mode} requires every populated Examples table to bind each used column`, t => {
+    const f = createFixture(t);
+    f.edit(source, s => s.replaceAll('price', '单价')
+      .replace('单价为 <单价>', '在 <span> 中显示单价 <单价>')
+      .replace('  @R02', '      例子:\n        | 单价 | quantity | total |\n        | 9 | 2 | 18 |\n  @R02'));
+    ok(f.run());
+    f.edit(source, s => s.replace('单价 | quantity | total |\n        | 9', '销售价 | quantity | total |\n        | 9'));
+    fails(f.run(), 'PLACEHOLDER');
+    f.edit(source, s => s.replace('场景大纲: 累加数量', '场景: 累加数量').replace(/^ *\| [39] +\|.*\n/gm, ''));
+    fails(f.run(), 'SCENARIO_INVALID');
+  });
+
+  test(`${mode} rejects Chinese Gherkin placeholders outside their binding`, t => {
+    const f = createFixture(t);
+    const original = fs.readFileSync(path.join(f.doc, source), 'utf8').replaceAll('price', '实际单价');
+    for (const [from, to] of [
+      ['单价为 <实际单价>', '单价为 <实际金额>'],
+      ['当 购买', '  | <实际单价> | <实际单价>\n      当 购买'],
+      ['已计算总额', '单价为 <实际单价>'],
+      ['| 3     |', '| <实际单价> |'],
+      ['规则: 计算', '规则: 计算 <实际单价>'],
+      ['  @R02', '      例子:\n        | 其他列 |\n        | 9 |\n  @R02'],
+      ['单价为 <实际单价>', '单价为 <实际单价> REPLACE_PRICE'],
+    ]) {
+      f.edit(source, () => original.replace(from, to));
+      fails(f.run(), 'PLACEHOLDER');
+    }
+    f.edit(source, () => original);
+    f.edit('technical.md', s => s + '\n待确定的设计 <实际单价>\n');
+    fails(f.run(), 'PLACEHOLDER');
+  });
+}
 
 test('render is topological, traceable and freshness covers source changes', t => {
   const f = fixture(t);
@@ -279,6 +343,47 @@ test('render is topological, traceable and freshness covers source changes', t =
   f.edit('plan.md', s => s + '\n手改生成文本。\n');
   fails(f.run('check'), 'REVIEW_INVALID');
 });
+
+for (const [mode, createFixture] of [['full', fixture], ['lite', liteFixture]]) {
+  test(`final ${mode} plan explains the goal and handoffs in execution order`, t => {
+    const f = createFixture(t);
+    const finalCheck = () => f.run('check', {}, ['--final']);
+    ok(f.run('render'));
+    ok(f.run('check'));
+    fails(finalCheck(), 'FINAL_PLAN_INCOMPLETE');
+
+    const goal = '买家要在购物车看到按单价和数量算出的总额。';
+    const calculate = '从购物车条目取得单价和数量，算出总额供 T02 展示。';
+    const display = '读取 T10 算出的总额，验收页面金额与条目合计是否一致。';
+    f.edit('plan.yaml', source => source
+      .replaceAll('T01', 'T10')
+      .replace('tasks:', `understanding: ${goal}\ntasks:`)
+      .replace('    depends_on: []', `    handoff: ${calculate}\n    depends_on: []`));
+    fails(finalCheck(), 'FINAL_PLAN_INCOMPLETE');
+    f.edit('plan.yaml', source => source.replace('    depends_on: [T10]', `    handoff: ${display}\n    depends_on: [T10]`));
+    ok(f.run('render'));
+    ok(f.run('check'));
+    fails(finalCheck(), 'FINAL_PLAN_ORDER');
+
+    f.edit('plan.yaml', source => {
+      const displayStart = source.indexOf('  - id: T02');
+      const calculateStart = source.indexOf('  - id: T10');
+      return source.slice(0, displayStart) + source.slice(calculateStart) + source.slice(displayStart, calculateStart);
+    });
+    ok(f.run('render'));
+    fails(finalCheck(), 'STALE_STATUS');
+    ok(f.run('status'));
+    ok(finalCheck());
+    const plan = fs.readFileSync(path.join(f.doc, 'plan.md'), 'utf8');
+    const expected = [goal, '## T10', calculate, '## T02', display];
+    let previous = -1;
+    for (const content of expected) {
+      const position = plan.indexOf(content);
+      assert.ok(position > previous, `expected in order: ${content}`);
+      previous = position;
+    }
+  });
+}
 
 test('render refuses handwritten plans and symlink destinations without modifying targets', t => {
   const f = fixture(t);
@@ -306,13 +411,13 @@ test('rejects YAML duplicate keys, unknown fields, wrong schema and duplicate ta
   }
 });
 
-test('validates both requirement anchors and product anchors', t => {
-  for (const file of ['requirement.md', 'product.md']) {
-    const f = fixture(t); f.edit(file, s => s.replace('id="R01"', 'id="R09"')); fails(f.run(), 'REFERENCE_INVALID');
-  }
-  const f = fixture(t);
-  f.edit('requirement.md', s => s + '\n<a id="R01"></a>\n');
-  fails(f.run(), 'DUPLICATE_ID');
+test('validates explicit PRD requirement anchors and rejects duplicates', t => {
+  const missing = fixture(t);
+  missing.edit('product.md', s => s.replace('id="R01"', 'id="R09"'));
+  fails(missing.run(), 'REFERENCE_INVALID');
+  const duplicate = fixture(t);
+  duplicate.edit('product.md', s => s + '\n<a id="R01"></a>\n');
+  fails(duplicate.run(), 'DUPLICATE_ID');
 });
 
 test('validates Scenario identities, inherited requirements and real Gherkin syntax', t => {
@@ -398,11 +503,13 @@ test('verify is rendered literally and is never executed', t => {
   assert.equal(fs.existsSync(marker), false);
 });
 
-test('missing dependencies fail with an actionable setup instruction', t => {
+test('unusable dependency directories point to the README instructions', t => {
   const f = fixture(t);
-  const result = f.run('validate', { AI_CODING_WORKFLOW_DEPS: path.join(f.root, 'no-deps') });
-  fails(result, 'DEPENDENCIES_MISSING');
-  assert.match(result.stderr, /setup\.mjs/);
+  for (const directory of [path.join(f.root, 'no-deps'), 'relative-deps']) {
+    const result = f.run('validate', { AI_CODING_WORKFLOW_DEPS: directory });
+    fails(result, 'DEPENDENCIES_MISSING');
+    assert.match(result.stderr, /readme\.md.*接入业务项目/i);
+  }
 });
 
 test('documentation-only iteration permits no scenarios with an explicit TDD exception', t => {
@@ -456,7 +563,7 @@ test('HTML comment examples inside fences preserve real body anchors in both mod
   for (const make of [fixture, liteFixture]) {
     for (const fence of ['```', '~~~~']) {
       const f = make(t);
-      const names = make === fixture ? ['requirement.md', 'product.md', 'technical.md'] : ['technical.md'];
+      const names = make === fixture ? ['product.md', 'technical.md'] : ['technical.md'];
       for (const name of names) {
         f.edit(name, s => `${fence}html\n<!--\n${fence}\n${s}\n<!-- editorial note -->\n`);
       }
@@ -469,7 +576,7 @@ test('comment markers in opening fence info never hide following body anchors', 
   for (const make of [fixture, liteFixture]) {
     for (const fence of ['```', '~~~~']) {
       const f = make(t);
-      const names = make === fixture ? ['requirement.md', 'product.md', 'technical.md'] : ['technical.md'];
+      const names = make === fixture ? ['product.md', 'technical.md'] : ['technical.md'];
       for (const name of names) {
         f.edit(name, s => `${fence}html <!-- comment-opening-example\nexample\n${fence}\n${s}`);
       }
@@ -481,138 +588,23 @@ test('comment markers in opening fence info never hide following body anchors', 
 test('fences inside body comments cannot expose hidden anchors', t => {
   for (const make of [fixture, liteFixture]) {
     const f = make(t);
-    const name = make === fixture ? 'requirement.md' : 'technical.md';
+    const name = make === fixture ? 'product.md' : 'technical.md';
     f.edit(name, s => s.replace('<a id="R01"></a>', '<!--\n```html\n<a id="R01"></a>\n```\n-->'));
     fails(f.run(), 'REFERENCE_INVALID');
   }
 });
 
 test('only standalone anchors outside fenced Markdown code declare references', t => {
-  for (const file of ['requirement.md', 'product.md', 'technical.md']) {
+  for (const file of ['product.md', 'technical.md']) {
     const f = fixture(t); f.edit(file, s => `\`\`\`html\n${s}\`\`\`\n`); fails(f.run(), 'REFERENCE_INVALID');
     const g = fixture(t); g.edit(file, s => `~~~html\n${s}~~~\n`); fails(g.run(), 'REFERENCE_INVALID');
   }
-  const h = fixture(t); h.edit('requirement.md', s => s.replace('<a id="R01"></a>', '示例：<a id="R01"></a>')); fails(h.run(), 'REFERENCE_INVALID');
+  const h = fixture(t); h.edit('product.md', s => s.replace('<a id="R01"></a>', '示例：<a id="R01"></a>')); fails(h.run(), 'REFERENCE_INVALID');
 });
 
 test('doing tasks must wait for completed dependencies', t => {
   const f = fixture(t); f.edit('plan.yaml', s => s.replace('status: todo', 'status: doing')); fails(f.run(), 'DEPENDENCY_INVALID');
   const g = fixture(t); g.edit('plan.yaml', s => s.replace('status: todo', 'status: blocked')); ok(g.run());
-});
-
-function setupFixture(t) {
-  const f = fixture(t);
-  const deps = path.join(f.root, 'deps');
-  const bin = path.join(f.root, 'bin');
-  const marker = path.join(f.root, 'npm-called');
-  fs.mkdirSync(deps); fs.mkdirSync(bin);
-  fs.writeFileSync(path.join(bin, 'npm'), '#!/bin/sh\nprintf called > "$WORKFLOW_SETUP_NPM_MARKER"\n', { mode: 0o755 });
-  const run = (script = setup, destination = deps) => spawnSync(process.execPath, [script], { encoding: 'utf8', env: { ...process.env,
-    PATH: `${bin}${path.delimiter}${process.env.PATH}`, AI_CODING_WORKFLOW_DEPS: destination, WORKFLOW_SETUP_NPM_MARKER: marker } });
-  return { ...f, deps, marker, run };
-}
-
-function copiedSetup(f) {
-  const bundle = path.join(f.root, '.agents');
-  const scripts = path.join(bundle, 'skills', 'develop-work-flow', 'scripts');
-  fs.mkdirSync(scripts, { recursive: true });
-  for (const name of ['setup.mjs', 'package.json', 'package-lock.json']) {
-    fs.copyFileSync(path.join(path.dirname(setup), name), path.join(scripts, name));
-  }
-  return { bundle, scripts, script: path.join(scripts, 'setup.mjs') };
-}
-
-test('setup rejects dependency directories throughout the shared skill bundle before writing', t => {
-  for (const relative of ['skills/develop-work-flow/deps', 'skills/another-skill/deps', 'agents/deps']) {
-    for (const exists of [false, true]) {
-      const f = setupFixture(t);
-      const source = copiedSetup(f);
-      const destination = path.join(source.bundle, relative);
-      if (exists) fs.mkdirSync(destination, { recursive: true });
-      const result = f.run(source.script, destination);
-      assert.notEqual(result.status, 0);
-      assert.match(result.stderr, /skill 源目录/);
-      assert.equal(fs.existsSync(destination), exists);
-      if (exists) assert.deepEqual(fs.readdirSync(destination), []);
-      assert.equal(fs.existsSync(f.marker), false);
-    }
-  }
-});
-
-test('setup resolves existing parent symlinks before creating a dependency directory', t => {
-  const f = setupFixture(t);
-  const source = copiedSetup(f);
-  const alias = path.join(f.root, 'source-alias');
-  fs.symlinkSync(source.scripts, alias);
-  const result = f.run(source.script, path.join(alias, 'new', 'deps'));
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /skill 源目录/);
-  assert.equal(fs.existsSync(path.join(source.scripts, 'new')), false);
-  assert.equal(fs.existsSync(f.marker), false);
-});
-
-test('setup rejects dangling parent symlinks without writes or npm invocation', t => {
-  const f = setupFixture(t);
-  const alias = path.join(f.root, 'missing-alias');
-  const missing = path.join(f.root, 'missing');
-  fs.symlinkSync(missing, alias);
-  assert.notEqual(f.run(setup, path.join(alias, 'deps')).status, 0);
-  assert.equal(fs.existsSync(missing), false);
-  assert.equal(fs.existsSync(f.marker), false);
-});
-
-test('setup resolves a parent step after a symlink before checking the source boundary', t => {
-  const f = setupFixture(t);
-  const source = copiedSetup(f);
-  const alias = path.join(f.root, 'source-alias');
-  fs.symlinkSync(source.scripts, alias);
-  const result = f.run(source.script, `${alias}/../deps`);
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /skill 源目录/);
-  assert.equal(fs.existsSync(path.join(source.scripts, '..', 'deps')), false);
-  assert.equal(fs.existsSync(f.marker), false);
-});
-
-test('setup permits a new external directory reached through an existing parent symlink', t => {
-  const f = setupFixture(t);
-  const source = copiedSetup(f);
-  const external = path.join(f.root, '.agents-external');
-  fs.mkdirSync(external);
-  const alias = path.join(f.root, 'external-alias');
-  fs.symlinkSync(external, alias);
-  ok(f.run(source.script, path.join(alias, 'new', 'deps')));
-  assert.equal(JSON.parse(fs.readFileSync(path.join(external, 'new', 'deps', 'package.json'), 'utf8')).name, 'ai-coding-workflow');
-  assert.equal(fs.readFileSync(f.marker, 'utf8'), 'called');
-});
-
-test('setup refuses a different package before overwriting files or invoking npm', t => {
-  const f = setupFixture(t);
-  const original = '{"name":"existing-other-project"}\n';
-  fs.writeFileSync(path.join(f.deps, 'package.json'), original);
-  const result = f.run();
-  assert.notEqual(result.status, 0);
-  assert.equal(fs.readFileSync(path.join(f.deps, 'package.json'), 'utf8'), original);
-  assert.equal(fs.existsSync(f.marker), false);
-});
-
-test('setup checks dangling manifests before any writes and never writes through them', t => {
-  for (const name of ['package.json', 'package-lock.json']) {
-    const f = setupFixture(t);
-    const outside = path.join(f.root, 'outside.json');
-    fs.symlinkSync(outside, path.join(f.deps, name));
-    const result = f.run();
-    assert.notEqual(result.status, 0);
-    assert.equal(fs.existsSync(outside), false);
-    assert.equal(fs.existsSync(f.marker), false);
-    if (name === 'package-lock.json') assert.equal(fs.existsSync(path.join(f.deps, 'package.json')), false);
-  }
-});
-
-test('setup may refresh its own dedicated dependency directory', t => {
-  const f = setupFixture(t);
-  ok(f.run()); ok(f.run());
-  assert.equal(JSON.parse(fs.readFileSync(path.join(f.deps, 'package.json'), 'utf8')).name, 'ai-coding-workflow');
-  assert.equal(fs.readFileSync(f.marker, 'utf8'), 'called');
 });
 
 function statusTasks(f, tasks) {
@@ -633,6 +625,41 @@ function recordReview(f, name, decision = '用户确认消息 42') {
     .replace('用户确认状态：待确认', '用户确认状态：已确认')
     .replace('用户确认依据：未取得；确认日期／原始来源待补录，原始记录见 evidence.md。', `用户确认依据：${decision}；原始记录见 evidence.md。`));
 }
+
+test('CRLF in generated views preserves current and archived reviews on check and refresh', t => {
+  const f = fixture(t);
+  const views = [['render', 'plan.md'], ['status', 'task-status.md']];
+  for (const [command, name] of views) {
+    ok(f.run(command));
+    recordReview(f, name, '首次确认');
+  }
+  f.edit('plan.yaml', content => content.replace('title: 计算购物车总额', 'title: 更新购物车总额'));
+  const reviewed = new Map();
+  for (const [command, name] of views) {
+    ok(f.run(command));
+    f.edit(name, content => content.replace('用户确认状态：需重新确认', '用户确认状态：已确认本轮'));
+    const content = reviewFile(f, name);
+    assert.match(content, /首次确认/);
+    assert.match(content, /已确认本轮/);
+    reviewed.set(name, content);
+    f.edit(name, content => content.replace(/\n/g, '\r\n'));
+  }
+  ok(f.run('check'));
+  for (const [command, name] of views) {
+    ok(f.run(command));
+    assert.equal(reviewFile(f, name).replace(/\r\n/g, '\n'), reviewed.get(name));
+  }
+  ok(f.run('check'));
+});
+
+test('CRLF in a verification command yields a plan that passes its own check', t => {
+  const f = fixture(t);
+  statusTasks(f, [{ id: 'T01', verify: 'node --version\r\nnode --test' }]);
+  ok(f.run('render'));
+  ok(f.run('status'));
+  assert.match(reviewFile(f, 'plan.md'), /node --version\nnode --test/);
+  ok(f.run('check'));
+});
 
 test('review sections initialize pending and upgrade old generated files without approving them', t => {
   const f = fixture(t);
@@ -766,7 +793,7 @@ test('status never executes verify or modifies the detailed plan and source DSL'
   const marker = path.join(f.root, 'not-executed');
   statusTasks(f, [{ id: 'T01', verify: `touch ${marker}`, remark: '人工验收前查看' }]);
   ok(f.run('render'));
-  const before = new Map(['plan.yaml', 'plan.md', 'requirement.md', 'product.md', 'technical.md', 'acceptance.feature'].map(name => [name, fs.readFileSync(path.join(f.doc, name), 'utf8')]));
+  const before = new Map(['plan.yaml', 'plan.md', 'product.md', 'technical.md', 'acceptance.feature'].map(name => [name, fs.readFileSync(path.join(f.doc, name), 'utf8')]));
   ok(f.run('status')); ok(f.run('check'));
   for (const [name, content] of before) assert.equal(fs.readFileSync(path.join(f.doc, name), 'utf8'), content);
   assert.equal(fs.existsSync(marker), false);
@@ -814,7 +841,7 @@ test('check protects handwritten and symlink status files even though it never w
   fails(f.run('check'), 'UNSAFE_PATH');
 });
 
-test('new req-prefixed requirement directory works without migrating existing slugs', t => {
+test('existing req-prefixed directories without a user suffix remain usable', t => {
   const f = fixture(t, 'req-r01-profile');
   ok(f.run('validate')); ok(f.run('render')); ok(f.run('status')); ok(f.run('check'));
   assert.equal(fs.existsSync(path.join(f.root, 'doc/req-r01-profile/task-status.md')), true);
@@ -830,10 +857,10 @@ test('remark is optional or a string including empty strings, never another YAML
   }
 });
 
-test('help describes status and the req-prefixed directory example', () => {
+test('help uses the full requirement directory name in its status example', () => {
   const result = spawnSync(process.execPath, [cli, '--help'], { encoding: 'utf8' });
   ok(result);
   assert.match(result.stdout, /status/);
   assert.match(result.stdout, /task-status\.md/);
-  assert.match(result.stdout, /req-r01-profile/);
+  assert.match(result.stdout, /--feature req-r01-profile-git-user\b/);
 });

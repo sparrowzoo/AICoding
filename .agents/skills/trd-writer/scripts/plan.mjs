@@ -11,22 +11,25 @@ const REVIEW_START = '<!-- ai-coding-workflow:review:start -->';
 const REVIEW_END = '<!-- ai-coding-workflow:review:end -->';
 const REVIEW_HISTORY = '<!-- ai-coding-workflow:review:history -->';
 const REVIEW_FIELDS = ['对象／来源摘要', '审查日期与方式', '审查状态', '用户确认状态', '审查结论／问题／未验证范围', '用户确认依据', '下一环节授权'];
-const help = `用法：node workflow.mjs <validate|render|status|check> --project <项目根> --feature <slug>
+const dependencyGuide = '安装步骤见 AICoding 仓库 readme.md 的“接入业务项目”一节。';
+const help = `用法：node plan.mjs <validate|render|status|check> --project <项目根> --feature <slug>
 
-feature 是需求目录完整名称，例如 req-r01-profile；名称使用小写 kebab-case。
+--feature 填目标项目 doc/ 下实际需求目录的完整名称，使用小写 kebab-case。已有需求沿用原目录名。
 输入由 plan.yaml 的可选 mode: full|lite 指定；省略时为 full，不按文件缺失推断。
-full：doc/<feature>/{requirement.md,product.md,technical.md,acceptance.feature,plan.yaml}
+full：doc/<feature>/{product.md,technical.md,acceptance.feature,plan.yaml}；R 锚点写在 product.md 正文。
 lite：doc/<feature>/{technical.md,plan.yaml}；R 锚点写在 TRD 正文，场景写在唯一 gherkin fenced 代码块。
 lite 场景块须有正文 <a id="acceptance"></a>；支持反引号或波浪线 fence，拒绝多个场景块或未闭合块。
 仅所有任务均无场景且各自声明 tdd_exception 时，lite 可省略场景块；轻量模式不减免测试与证据。
 输出：render 仅写 doc/<feature>/plan.md；status 仅写 doc/<feature>/task-status.md。
-validate 校验结构与追溯引用；render 生成拓扑排序的详细计划；status 生成任务编号/名称/状态/备注四列表格。
+validate 校验结构与追溯引用；render 按任务依赖生成详细计划；status 生成任务状态表。
 check 要求 plan.md 新鲜；task-status.md 已存在时也检查，未生成时不阻止规划阶段检查。
+定稿使用 check --final，要求有本轮需求理解、每项任务的上下游说明、按执行顺序排列的源任务和两份最新生成文件。
 生成正文只读；末尾评审结论由协调者维护。同正文重生成保留评审；正文变化重置当前结论并保留人工历史。
 check 严格检查生成正文和评审区结构，不认证审查或用户授权真实性。
-生成文件均拒绝覆盖无对应生成标记的手写文件。例如：node workflow.mjs status --project . --feature req-r01-profile
+生成文件均拒绝覆盖无对应生成标记的手写文件。以目录 req-r01-profile-git-user 为例：
+node plan.mjs status --project . --feature req-r01-profile-git-user
 工具不执行 DSL 中的任何命令，不证明业务语义、测试结果或证据真实性。
-首次运行：node setup.mjs（依赖安装到 ~/.local/share/ai-coding-workflow/，需要相应权限）。
+默认依赖目录为 ~/.local/share/ai-coding-workflow/。${dependencyGuide}
 测试可设置 AI_CODING_WORKFLOW_DEPS=<绝对依赖目录>。需要 Node.js 22+。
 `;
 function fail(code, message) { const error = new Error(message); error.code = code; throw error; }
@@ -48,11 +51,11 @@ function placeholders(content, name) {
 }
 function dependencies() {
   const base = process.env.AI_CODING_WORKFLOW_DEPS || path.join(os.homedir(), '.local/share/ai-coding-workflow');
-  if (!path.isAbsolute(base)) fail('DEPENDENCIES_MISSING', 'AI_CODING_WORKFLOW_DEPS 必须为绝对目录；先运行 node setup.mjs。');
+  if (!path.isAbsolute(base)) fail('DEPENDENCIES_MISSING', `AI_CODING_WORKFLOW_DEPS 必须为绝对目录。${dependencyGuide}`);
   try {
     const require = createRequire(path.join(base, 'package.json'));
     return { YAML: require('yaml'), Gherkin: require('@cucumber/gherkin'), Messages: require('@cucumber/messages') };
-  } catch { fail('DEPENDENCIES_MISSING', `无法从 ${base} 加载依赖。请先运行 node setup.mjs；依赖不安装到项目或 skill 源目录。`); }
+  } catch { fail('DEPENDENCIES_MISSING', `无法从 ${base} 加载依赖。${dependencyGuide}`); }
 }
 function inside(root, absolute) {
   const relative = path.relative(root, absolute);
@@ -123,9 +126,10 @@ function anchors(content, label) {
   return found;
 }
 function embeddedGherkin(content) {
-  let fence, block;
+  let fence, block, lineOffset;
   const comments = { inComment: false };
-  for (let line of content.split(/\r?\n/)) {
+  for (const [index, rawLine] of content.split(/\r?\n/).entries()) {
+    let line = rawLine;
     if (fence) {
       if (new RegExp(`^ {0,3}${fence.char}{${fence.length},}[ \\t]*$`).test(line)) fence = undefined;
       else if (fence.gherkin) block.push(line);
@@ -138,11 +142,41 @@ function embeddedGherkin(content) {
     if (gherkin) {
       if (block !== undefined) fail('GHERKIN_INVALID', 'technical.md 只能有一个顶层 gherkin 代码块。');
       block = [];
+      lineOffset = index + 1;
     }
     fence = { char: opening[1][0], length: opening[1].length, gherkin };
   }
   if (fence) fail('GHERKIN_INVALID', 'technical.md 含未闭合的 fenced 代码块。');
-  return block?.join('\n');
+  return block && { content: block.join('\n'), lineOffset };
+}
+// Only remove brackets on occurrences the Gherkin compiler actually interpolates.
+function unmarkOutlineParameters(scenario, examples, sourceLines, offset) {
+  const headers = examples.map(example => new Set(example.tableHeader.cells.map(cell => cell.value)));
+  function unmark(line, value) {
+    for (const [token, column] of value.matchAll(/<([^<>\n]+)>/g)) {
+      if (!headers.some(header => header.has(column))) continue;
+      if (!headers.every(header => header.has(column))) {
+        fail('PLACEHOLDER', `场景大纲“${scenario.name}”的每组有效 Examples 都须提供列“${column}”。`);
+      }
+      const index = offset + line - 1;
+      sourceLines[index] = sourceLines[index].replace(token, () => ` ${column} `);
+    }
+  }
+  unmark(scenario.location.line, scenario.name);
+  for (const step of scenario.steps) {
+    unmark(step.location.line, step.text);
+    for (const row of step.dataTable?.rows || []) {
+      const index = offset + row.location.line - 1;
+      // Compare escaped pipes and backslashes as the parser presents them in cell values.
+      sourceLines[index] = sourceLines[index].replace(/\\([|\\])/g, '$1');
+      unmark(row.location.line, row.cells.map(cell => cell.value).join('\n'));
+    }
+    if (step.docString) {
+      const { location, content, mediaType } = step.docString;
+      unmark(location.line, mediaType ?? '');
+      content.split('\n').forEach((line, index) => unmark(location.line + index + 1, line));
+    }
+  }
 }
 function load(project, featureName, libs) {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(featureName)) fail('SCHEMA_INVALID', 'feature 必须为 kebab-case slug。');
@@ -151,7 +185,7 @@ function load(project, featureName, libs) {
   if (!fs.statSync(root).isDirectory()) fail('UNSAFE_PATH', '项目根必须是目录。');
   const directory = safePath(root, path.join(root, 'doc', featureName));
   const sources = new Map();
-  function read(absolute) {
+  function read(absolute, checkPlaceholders = true) {
     safePath(root, absolute);
     if (sources.has(absolute)) return sources.get(absolute);
     let content;
@@ -162,7 +196,7 @@ function load(project, featureName, libs) {
       if (error.code === 'ENOENT') fail('REFERENCE_INVALID', `输入文件不存在：${absolute}`);
       throw error;
     }
-    placeholders(content, path.relative(root, absolute));
+    if (checkPlaceholders) placeholders(content, path.relative(root, absolute));
     sources.set(absolute, content);
     return content;
   }
@@ -171,27 +205,30 @@ function load(project, featureName, libs) {
   if (parsed.errors.length || parsed.warnings.length) fail('YAML_INVALID', [...parsed.errors, ...parsed.warnings].map(e => e.message).join('; '));
   let plan;
   try { plan = parsed.toJS({ maxAliasCount: 100 }); } catch (error) { fail('YAML_INVALID', error.message); }
-  keys(plan, ['schema', 'mode', 'feature', 'iteration', 'tasks'], ['schema', 'feature', 'iteration', 'tasks'], 'plan');
+  keys(plan, ['schema', 'mode', 'feature', 'iteration', 'understanding', 'tasks'], ['schema', 'feature', 'iteration', 'tasks'], 'plan');
   schema(plan.schema === 1, 'schema 只支持整数 1。');
   const mode = plan.mode === undefined ? 'full' : plan.mode;
   schema(['full', 'lite'].includes(mode), 'mode 只支持 full 或 lite；省略时为 full。');
   schema(plan.feature === featureName, 'plan.feature 必须与 --feature 相同。');
   schema(text(plan.iteration), 'iteration 必须为非空字符串。');
+  if (plan.understanding !== undefined) schema(text(plan.understanding), 'understanding 必须为非空字符串。');
   schema(Array.isArray(plan.tasks) && plan.tasks.length > 0, 'tasks 必须为非空列表。');
-  for (const name of mode === 'full' ? ['requirement.md', 'product.md', 'technical.md', 'acceptance.feature'] : ['technical.md']) raw[name] = read(path.join(directory, name));
-  const requirements = mode === 'full' ? anchors(raw['requirement.md'], 'requirement.md') : anchors(raw['technical.md'], 'technical.md');
-  const products = mode === 'full' ? anchors(raw['product.md'], 'product.md') : requirements;
+  const scenarioFile = mode === 'full' ? 'acceptance.feature' : 'technical.md';
+  for (const name of mode === 'full' ? ['product.md', 'technical.md', 'acceptance.feature'] : ['technical.md']) {
+    raw[name] = read(path.join(directory, name), name !== scenarioFile);
+  }
+  const ruleFile = mode === 'full' ? 'product.md' : 'technical.md';
+  const requirements = anchors(raw[ruleFile], ruleFile);
   const requirementId = /^R\d{2,}$/;
   const scenarioId = /^S\d{2,}$/;
   const taskId = /^T\d{2,}$/;
   const knownRequirement = id => {
-    if (!requirements.has(id) || !products.has(id)) fail('REFERENCE_INVALID', mode === 'full'
-      ? `${id} 必须同时在 requirement.md 与 product.md 有显式 anchor。`
-      : `${id} 必须在 technical.md 正文有显式 anchor。`);
+    if (!requirements.has(id)) fail('REFERENCE_INVALID', `${id} 必须在 ${ruleFile} 正文有显式 anchor。`);
   };
-  if (mode === 'full') for (const id of products) if (requirementId.test(id) && !requirements.has(id)) fail('REFERENCE_INVALID', `product.md 的 ${id} 未在需求中声明。`);
   const scenarioMap = new Map();
-  const scenarioSource = mode === 'full' ? raw['acceptance.feature'] : embeddedGherkin(raw['technical.md']);
+  const block = mode === 'lite' ? embeddedGherkin(raw[scenarioFile]) : { content: raw[scenarioFile], lineOffset: 0 };
+  const scenarioSource = block?.content;
+  const sourceLines = raw[scenarioFile].split(/\r?\n/);
   if (mode === 'lite' && scenarioSource !== undefined && !requirements.has('acceptance')) fail('REFERENCE_INVALID', 'technical.md 的场景块需要正文 <a id="acceptance"></a>。');
   let document;
   if (scenarioSource !== undefined) {
@@ -214,21 +251,24 @@ function load(project, featureName, libs) {
       if (ids.length !== 1 || refs.length === 0) fail('SCENARIO_INVALID', `场景“${scenario.name}”必须直接声明一个 @S 编号并具有至少一个有效 @R 标签。`);
       if (scenarioMap.has(ids[0])) fail('DUPLICATE_ID', `重复场景编号：${ids[0]}`);
       refs.forEach(knownRequirement);
-      const isOutline = libs.Gherkin.dialects[document.feature.language].scenarioOutline.includes(scenario.keyword);
-      const hasExampleRow = scenario.examples.some(example => example.tableBody.length > 0);
+      const requiresExamples = scenario.examples.length > 0 || libs.Gherkin.dialects[document.feature.language].scenarioOutline.includes(scenario.keyword);
+      const examples = scenario.examples.filter(example => example.tableBody.length > 0);
+      if (examples.length) unmarkOutlineParameters(scenario, examples, sourceLines, block.lineOffset);
       scenarioMap.set(ids[0], { id: ids[0], name: scenario.name, requirements: refs, line: scenario.location.line,
-        executable: scenario.steps.length > 0 && (!isOutline || hasExampleRow) });
+        executable: scenario.steps.length > 0 && (!requiresExamples || examples.length > 0) });
     }
   }
   if (document) walk(document.feature);
+  placeholders(sourceLines.join('\n'), path.relative(root, path.join(directory, scenarioFile)));
   const byId = new Map();
-  const allowedTask = ['id', 'title', 'requirements', 'scenarios', 'design', 'files', 'depends_on', 'verify', 'status', 'evidence', 'tdd_exception', 'remark'];
+  const allowedTask = ['id', 'title', 'requirements', 'scenarios', 'design', 'files', 'depends_on', 'verify', 'status', 'evidence', 'tdd_exception', 'remark', 'handoff'];
   for (const task of plan.tasks) {
     keys(task, allowedTask, allowedTask.slice(0, 9), 'task');
     schema(typeof task.id === 'string' && taskId.test(task.id), 'task.id 必须为 T01 形式。');
     if (byId.has(task.id)) fail('DUPLICATE_ID', `重复任务编号：${task.id}`);
     byId.set(task.id, task);
     schema(text(task.title) && text(task.verify), `${task.id} title/verify 必须为非空字符串。`);
+    if (task.handoff !== undefined) schema(text(task.handoff), `${task.id}.handoff 必须为非空字符串。`);
     if (task.remark !== undefined) schema(typeof task.remark === 'string', `${task.id}.remark 必须为字符串，可为空。`);
     schema(['todo', 'doing', 'done', 'blocked'].includes(task.status), `${task.id} 非法 status。`);
     stringList(task.requirements, `${task.id}.requirements`, { pattern: requirementId });
@@ -277,7 +317,7 @@ function load(project, featureName, libs) {
   plan.tasks.forEach(visit);
   const sourceList = [...sources].map(([absolute, content]) => [path.relative(root, absolute).split(path.sep).join('/'), content]).sort(([a], [b]) => a.localeCompare(b));
   const hash = createHash('sha256').update(JSON.stringify(sourceList)).digest('hex');
-  return { root, directory, plan, mode, ordered, scenarioMap, hasAcceptance: scenarioSource !== undefined, hash };
+  return { root, directory, plan, mode, ruleFile, ordered, scenarioMap, hasAcceptance: scenarioSource !== undefined, hash };
 }
 function inline(value) { return String(value).replace(/([\\`*_[\]<>])/g, '\\$1').replace(/\r?\n/g, ' '); }
 function uriComponent(value) { return encodeURIComponent(value).replace(/[!'()*]/g, char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`); }
@@ -287,18 +327,22 @@ function fenced(value) {
   const fence = '`'.repeat(maxTicks + 1);
   return `${fence}text\n${value}\n${fence}`;
 }
+function markdownNewlines(content) { return content.replace(/\r\n/g, '\n'); }
 function generate(model) {
-  const { plan, mode, ordered, scenarioMap, hasAcceptance, hash } = model;
+  const { plan, mode, ruleFile, ordered, scenarioMap, hasAcceptance, hash } = model;
   const sourceLinks = mode === 'full'
-    ? '[需求](requirement.md) · [产品](product.md) · [技术](technical.md) · [场景](acceptance.feature) · [任务 DSL](plan.yaml)'
+    ? '[产品](product.md) · [技术](technical.md) · [场景](acceptance.feature) · [任务 DSL](plan.yaml)'
     : `[技术](technical.md)${hasAcceptance ? ' · [场景](technical.md#acceptance)' : ''} · [任务 DSL](plan.yaml)`;
   const lines = [MARKER, `<!-- sources-sha256: ${hash} -->`, `# ${inline(plan.feature)} 执行计划`, '', `本轮：${inline(plan.iteration)}`, '',
     '本文件正文由 DSL 生成，请修改源文件后重新 render；仅末尾评审结论区由协调者维护。状态与证据是声明；业务语义、测试真实性及审查质量由人或审查流程确认。CLI 不执行以下命令。', '',
     `来源：${sourceLinks}`, '',
     'Git 追溯：提交正文使用 `Task: <feature>/<TID>`；任务编号在 feature 内终身不复用，历史复用由 Git 审查检查。当前提交无需将自己的 hash 写回当前文件。', ''];
+  if (plan.understanding) lines.push('## 对本轮需求的理解', '', inline(plan.understanding), '');
   for (const task of ordered) {
-    lines.push(`## ${task.id} ${inline(task.title)}`, '', `- 状态：${task.status}`, `- 依赖：${task.depends_on.join(', ') || '无'}`,
-      `- 需求：${task.requirements.map(id => mode === 'full' ? `[${id}](requirement.md#${id}) / [产品行为](product.md#${id})` : `[${id}](technical.md#${id})`).join('；')}`,
+    lines.push(`## ${task.id} ${inline(task.title)}`, '');
+    if (task.handoff) lines.push(`- 上下游说明：${inline(task.handoff)}`);
+    lines.push(`- 状态：${task.status}`, `- 依赖：${task.depends_on.join(', ') || '无'}`,
+      `- 需求：${task.requirements.map(id => `[${id}](${ruleFile}#${id})`).join('；')}`,
       `- 场景：${task.scenarios.map(id => `[${id}](${mode === 'full' ? `acceptance.feature#L${scenarioMap.get(id).line}` : 'technical.md#acceptance'}) ${inline(scenarioMap.get(id).name)}`).join('；') || '无（见 TDD 例外）'}`,
       `- 设计：${task.design.map(ref => `[${inline(ref)}](${designHref(ref)})`).join('；')}`, '', '修改文件：', '',
       ...task.files.map(file => `- ${inline(file)}`), '', '验证命令（项目根执行）：', '', fenced(task.verify), '', '验证与审查证据：', '',
@@ -307,7 +351,7 @@ function generate(model) {
     if (task.tdd_exception) lines.push(`- TDD 例外：${inline(task.tdd_exception)}`);
     lines.push('', 'Git trailer：', '', fenced(`Task: ${plan.feature}/${task.id}`), '');
   }
-  return lines.join('\n');
+  return markdownNewlines(lines.join('\n'));
 }
 function tableCell(value) {
   const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '|': '&#124;', '\\': '&#92;', '`': '&#96;', '*': '&#42;', '_': '&#95;', '[': '&#91;', ']': '&#93;', '~': '&#126;' };
@@ -400,7 +444,7 @@ function checkGenerated(content, expected, staleCode, name) {
 function readGenerated(model, name, marker, errorCode) {
   const destination = safePath(model.root, path.join(model.directory, name));
   let content;
-  try { content = fs.readFileSync(destination, 'utf8'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  try { content = markdownNewlines(fs.readFileSync(destination, 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
   if (content !== undefined && !content.startsWith(`${marker}\n`)) fail(errorCode, `${name} 没有本工具对应的生成标记，拒绝覆盖或接管手写文件。`);
   return { destination, content };
 }
@@ -412,6 +456,16 @@ function writeGenerated(model, destination, content) {
     fs.renameSync(temporary, destination);
   } finally { if (fs.existsSync(temporary)) fs.unlinkSync(temporary); }
 }
+function checkFinalPlan(plan) {
+  if (!plan.understanding) fail('FINAL_PLAN_INCOMPLETE', '请在 plan.yaml 的 understanding 写明对本轮需求的理解。');
+  const preceding = new Set();
+  for (const task of plan.tasks) {
+    if (!task.handoff) fail('FINAL_PLAN_INCOMPLETE', `请在 ${task.id}.handoff 说明输入来自哪里，结果交给谁或怎样验收。`);
+    const later = task.depends_on.find(id => !preceding.has(id));
+    if (later) fail('FINAL_PLAN_ORDER', `请调整 plan.yaml 的任务顺序，把前置任务 ${later} 放在 ${task.id} 之前。`);
+    preceding.add(task.id);
+  }
+}
 function main() {
   const args = process.argv.slice(2);
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) { console.log(help); return; }
@@ -419,12 +473,19 @@ function main() {
   if (!['validate', 'render', 'status', 'check'].includes(command)) fail('ARGUMENTS', '未知命令，请使用 --help。');
   const options = {};
   while (args.length) {
-    const flag = args.shift(), value = args.shift();
+    const flag = args.shift();
+    if (flag === '--final') {
+      if (command !== 'check' || options[flag]) fail('ARGUMENTS', '--final 仅用于 check 且只能指定一次。');
+      options[flag] = true;
+      continue;
+    }
+    const value = args.shift();
     if (!['--project', '--feature'].includes(flag) || !value || value.startsWith('--') || options[flag]) fail('ARGUMENTS', '需要唯一的 --project 与 --feature 参数。');
     options[flag] = value;
   }
   if (!options['--project'] || !options['--feature']) fail('ARGUMENTS', '必须指定 --project 和 --feature。');
   const model = load(options['--project'], options['--feature'], dependencies());
+  if (options['--final']) checkFinalPlan(model.plan);
   if (command === 'validate') { console.log(`OK validate ${model.plan.feature}: ${model.ordered.length} tasks；仅结构/引用校验，未执行命令。`); return; }
   if (command === 'status') {
     const { destination, content: previous } = readGenerated(model, 'task-status.md', STATUS_MARKER, 'HANDWRITTEN_STATUS');
@@ -436,7 +497,7 @@ function main() {
   if (command === 'check') {
     checkGenerated(previous, expected, 'STALE_PLAN', 'plan.md');
     const status = readGenerated(model, 'task-status.md', STATUS_MARKER, 'HANDWRITTEN_STATUS');
-    if (status.content !== undefined) checkGenerated(status.content, generateStatus(model), 'STALE_STATUS', 'task-status.md');
+    if (options['--final'] || status.content !== undefined) checkGenerated(status.content, generateStatus(model), 'STALE_STATUS', 'task-status.md');
     console.log(`OK check ${model.plan.feature}: 生成正文与全部源文件一致，评审区结构有效；未认证审查或用户授权。`); return;
   }
   writeGenerated(model, destination, withReview(expected, previous, 'plan.md', model.hash));

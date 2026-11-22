@@ -1,13 +1,17 @@
-# 起稿模板：替换所有 REPLACE 内容，路径和验证命令必须来自目标项目。
+# 与目标需求目录中的 technical.md 配合。起草 TRD 时，从本模板同目录的 technical.md 入口读取正文模板。
+# 替换占位符，验证命令使用项目实际入口。
 schema: 1
-mode: full
-feature: REPLACE_REQUIREMENT_DIR # 例如 req-r01-profile，与 doc/ 下的目录名一致
+mode: lite
+feature: REPLACE_REQUIREMENT_DIR # 复制目标项目 doc/ 下的实际需求目录完整名称
 iteration: "01"
+understanding: REPLACE_PROBLEM_SCOPE_AND_EXPECTED_RESULT
 # 本轮任务及必要的已完成前置（含传递依赖）；未完任务沿用编号结转，新任务编号不复用。
 # 前轮基线在 remark 说明，完成证据必须仍有效；退出项在 evidence.md 记录范围决定。
+# 定稿时依次排列，所有前置任务在使用其结果的任务之前。可并行的任务保留真实依赖。
 tasks:
   - id: T01
     title: REPLACE_TASK_OUTCOME
+    handoff: REPLACE_INPUT_SOURCE_OUTPUT_AND_NEXT_TASK_OR_ACCEPTANCE
     requirements: [R01]
     scenarios: [S01]
     design: [technical.md#api-01, technical.md#test-strategy]
@@ -15,7 +19,7 @@ tasks:
     depends_on: []
     verify: REPLACE_TEST_COMMAND
     status: todo
-    remark: "" # 最后验收任务状态表的简短备注
+    remark: ""
 
 # 评审结论
 # 对象、版本与范围：REPLACE_REVIEW_TARGET_VERSION_SCOPE

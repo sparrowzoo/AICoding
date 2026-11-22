@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Read-only DSL validation and deterministic Markdown plan generation",
   "engines": { "node": ">=22" },
-  "scripts": { "test": "node --test workflow.test.mjs" },
+  "scripts": { "test": "node --test plan.test.mjs" },
   "dependencies": {
     "@cucumber/gherkin": "42.0.1",
     "@cucumber/messages": "34.2.1",

@@ -1,37 +1,38 @@
 ---
 name: prd-writer
-description: 严格保留指定模板的章节、顺序与层级，编写完整 PRD 和 Gherkin 验收场景；用于产品设计或需求调整，交接技术设计与可执行计划。
+description: 编写产品需求和验收场景。召回关键词：写 PRD、整理产品需求、梳理业务规则、明确功能范围、给需求补验收标准、编写 Gherkin 场景。说清目标用户遇到的问题、竞品或现有做法，以及用户操作后应当看到的结果。
 ---
 
-文档处理统一遵循[清楚、适量、复用](../develop-work-flow/SKILL.md#documentation-principle)、[模板结构](../develop-work-flow/SKILL.md#template-structure)及[最新结论与同步](../develop-work-flow/SKILL.md#decision-sync)；自查和评审按[全链路逻辑审查](../develop-work-flow/SKILL.md#logic-review)执行当前阶段适用项。本 skill 只维护本阶段特有要求，不复制共用规则正文。
+# 产品需求与验收场景
 
-共享执行规则来自 [develop-work-flow](../develop-work-flow/SKILL.md)。通过软链接加载时，先解析本文件的真实路径，仅用于定位技能包内的 skill、agents、脚本和模板；执行时不回源仓库读取设计文档。目标业务项目的需求、产品、技术、代码与证据仍是必要任务输入，应按本次范围读取。首次写入前执行主工作流的[需求分支准备](../develop-work-flow/SKILL.md#requirement-branch)，续做或阶段交接时核对并复用对应分支；只读审查不切换工作区。
+业务需求默认从本阶段开始。根据用户诉求、业务资料、现有产品和已确认的范围编写 `doc/<需求目录>/product.md` 与 `acceptance.feature`。业务依据、产品规则和验收目标在 PRD 中统一维护，以稳定的 R 编号关联业务来源与产品行为。已有历史论证或评审材料时引用仍有效的结论、来源和编号。
 
-# 产品设计
+## 开始条件
 
-先按[新需求独立成文](../develop-work-flow/SKILL.md#requirement-document-boundary)确定文档归属：每次新需求在独立需求目录重新编写当前阶段文档，重复内容用适用说明与具体章节链接复用。下文沿用目录、保留编号、原位更新与跨轮承接仅限同一需求的修订和继续执行，不适用于后续新需求；不能因为属于同一产品或修改存量功能而并入旧文档。
+先按[分流规则](../develop-work-flow/SKILL.md#requirement-kind)判断需求性质。独立的新技术需求使用自己的需求目录，经用户同意后交给 [TRD](../trd-writer/SKILL.md) 设计。同一需求内的纯技术迭代沿用原目录及已有设计。业务需求按[阶段授权](../develop-work-flow/references/authorization.md#stage-authorization)核实本轮产品设计范围，涉及立项、跨团队责任或范围取舍时，在 PRD 写明依据、选择和决定人。变更存量产品行为时，先核实当前表现及受影响用户。
 
-编写前按[需求性质确认](../develop-work-flow/SKILL.md#requirement-kind)决定文档集合，按[迭代承接](../develop-work-flow/SKILL.md#iteration)决定更新范围。未明确性质先询问，已有确认直接复用；独立技术需求可省略 BRD/PRD。已有产品需求的迭代：纯技术改动只更新原 TRD，产品逻辑变化才同步原 PRD。
+新需求使用[独立需求目录](../develop-work-flow/references/deliverables.md#requirement-document-boundary)，同一需求按[迭代承接](../trd-writer/references/planning.md#iteration)保留编号及历史依据。旧 lite 需求扩为 full 时，在证据记录定位原 TRD 的编号及可复核版本，在 PRD 中承接有效业务事实。首次写入前按[分支规则](../develop-work-flow/references/authorization.md#requirement-branch)处理；通过软链接调用时，按真实路径定位技能包。
 
-交付遵守[产物内容边界](../develop-work-flow/SKILL.md#artifact-relevance)：skill 规则变更对业务文档透明，直接维护当前有效内容；不在正文、评审区或业务 evidence 中记录规则调整、旧文档问题及重构过程。真实业务变化、授权与验证记录仍须保留。
+<a id="prd-template"></a>
+## PRD 要讲清的内容
 
-文档中的人员、团队与职责按[相关人确认](../develop-work-flow/SKILL.md#stakeholder-confirmation)核实；缺少必要信息时集中询问用户，不用“未指定”或其他占位词替代确认，已确认的角色／团队及后置安排按实际范围复用。
+按[指定 PRD 模板](templates/product.md)保留标题、顺序与层级。将下列问题放入已有的需求背景、项目评估、业务需求、功能需求和验证方式等章节。
 
-产品评审及 grilling 遵守[需求评审边界](../develop-work-flow/SKILL.md#requirement-review-boundary)：明确业务行为、交互、范围和验收，技术实现细节留到 TRD；不能因技术机制未定而阻塞已明确的产品规格，也不能把业务取舍藏进技术待办。
+1. **现状与立项理由。** 谁在业务流程的哪一步遇到了什么问题，今天用什么方法处理，有何代价，为什么值得现在投入？给出访谈、业务记录、数据或已确认判断的来源，交代项目在整体业务中的位置、本轮范围和成功标准；存在关键的外部服务或数据依赖时，核实提供方、归属、可用程度及其对本轮的影响。缺少基线时写清待核实之处。
+2. **目标用户与使用场景。** 说明使用者、受益者及相关方，区分其目标、权限、痛点和当前做法。把痛点落到具体任务和可观察后果；相关团队与职责按[相关人确认](references/stakeholders.md#stakeholder-confirmation)核实。
+3. **竞调与竞品分析。** 指出同一用户完成同一任务时可选的竞品或替代方案，包括现有人工流程。依据可定位的资料或实际观察，比较关键步骤、限制与使用结果，说明对本次产品取舍的影响。无直接竞品时说明所比较的替代方案；资料不足时标明未知，避免编造竞品能力、市场数据或用户反馈。
+4. **业务规则与产品行为。** 沿业务流程逐步写明谁可以操作、前置条件、输入的业务含义、允许和拒绝的条件、状态变化、可观察结果及交接责任。对本次相关的失败、重复操作、权限差异和边界给出明确预期；涉及存量时标明改变和保留的行为。
+5. **验收与效果衡量。** 每项可验收需求在详细需求中以独立行声明稳定锚点（如 `<a id="R01"></a>`）。同一需求迭代保留已有编号。按[场景规范](references/acceptance-scenarios.md)用[验收场景模板](templates/acceptance.feature)在 `acceptance.feature` 编写具体输入、操作和预期结果，并在 PRD 中按 S 编号引用。产品指标说明计算口径、数据来源与评估时机；场景记录产品承诺，验收阶段核实真实运行结果。
 
-开始前读取[公共工作流](../develop-work-flow/SKILL.md)，按[阶段授权](../develop-work-flow/SKILL.md#stage-authorization)核对需求阶段结论、当前产物与进入产品设计的授权，直接调用本 skill 也遵守相同门禁。按[迭代承接](../develop-work-flow/SKILL.md#iteration)确定更新范围，沿用同一需求的目录和文档布局。纯技术小迭代由 [trd-writer](../trd-writer/SKILL.md)更新原 TRD，无须改写 PRD；产品逻辑小变更须同步原 PRD，并更新受影响场景与技术设计，不能仅在 TRD 覆盖产品规则。只有原需求按规则省略 PRD 且仍符合省略条件时，才继续在 TRD 维护规则和场景。未变内容直接引用，不为小改重写全文。以下规则用于完整模式，输入为当前用户授权及目标项目的 `doc/<需求目录>/requirement.md`；缺少需求产物或确认时先报告缺口，按公共规则补齐需求阶段与交接，不以整理最小需求为由绕过授权，也不另建一套平行来源。
+<a id="requirement-review-boundary"></a>
+## 产品与技术的交接边界
 
-沿用本次需求的上游需求目录（如 req-r02-realtime-push，而非原产品需求目录），维护 `doc/<需求目录>/product.md` 和 `acceptance.feature`。lite 转 full 时，从 REQ 已整理的业务输入承接并编写完整产品和场景；原 TRD 的编号、版本及历史来源由 REQ/evidence.md 留证，PRD 不直接引用旧/新 TRD。保留 R/S 编号，新编号递增。完整模式的职责为：
+技术阶段由 TRD 确定概要设计、物理表结构和执行计划。需要新增或改变接口时，由 [api-first](../api-first/SKILL.md) 定义签名与协议。PRD 说明业务数据的含义、来源、归属、用途和风险，以及依赖的外部能力不可用时用户会看到什么。后续 TRD 引用 PRD，产品规则和范围在产品阶段确定。指标、看板与附录按本次适用性填写，保留已有 PRD 的有效批准依据。在需求访谈和评审中，若技术选择会改变用户可见结果、范围、数据归属、权限或成本，说明业务影响后请用户决定。锁、算法、接口内部处理等纯技术选择连同已确认的目标和约束交接给 TRD。PRD 的评审依据是业务规则、可观察行为和验收条件。
 
-- 编写前读取 [PRD 模板](../develop-work-flow/assets/feature/product.md)，按[产品文档职责](../develop-work-flow/SKILL.md#prd-template)编写，并执行[模板结构与内容检查](../develop-work-flow/SKILL.md#template-structure)。在详细需求中维护 `R01` 等稳定锚点并链接 REQ 输入。
-- 遵守公共规则的单向依赖：PRD 先完成业务说明，后续 TRD 引用 PRD 做技术设计；PRD 不引用 TRD，也不以等待技术方案为模板章节的完成条件。风险与业务数据部分分别说明风险的业务影响和相关业务数据，不提前编写技术方案。
-- `acceptance.feature` 是场景的唯一正文，使用 Gherkin 描述可观察行为并保留稳定场景标识。只覆盖与功能相关的正常、边界、异常或并发条件，不机械凑类别和数量。
-- 将场景落实到现有测试入口或明确的待实施绑定；文字场景和仅通过语法检查都不等于测试已经运行。
+## 产品评审与交接
 
-在已授权产品阶段内先核对产品行为与接口事实，再设计本次可完成的功能切片；需用户判断的决定按[接入约定](../develop-work-flow/SKILL.md#onboarding)使用用户级 grilling 分轮确认。新旧功能及纯文档均遵守阶段授权，自主执行例外仅按公共规则判断并留证。涉及历史功能逻辑变更时，无论 `lite` 或 `full`、风险高低，还须按[存量确认](../develop-work-flow/SKILL.md#existing-confirmation)核对改变与保留范围，将结论交给技术阶段细化代码和接口方案。产品确认不替代具体代码设计和实施范围的授权；已明确批准的同一对象和范围不重复，超出范围的决定重新确认。
+单独评审已有 PRD 时，将文档和用户已指定的评分项交给 [doc-reviewer](../../agents/doc-reviewer/AGENT.md#doc-review-report)，只读核对业务规则与验收场景。与 TRD、Workflow 联审时，按同一份[评分口径](../../agents/doc-reviewer/references/review.md#scoring-rubric)汇总。
 
-交付前执行[统一模板检查](../develop-work-flow/SKILL.md#template-structure)和[全链路逻辑审查](../develop-work-flow/SKILL.md#logic-review)。交付前对照模板检查本次适用内容、关键约束、引用与待确认事项，按公共规范完成本阶段必要审查，交接实际文件、结论、规则与场景关联以及未决项；不能以 DSL 校验代替内容充分性检查。按[阶段授权](../develop-work-flow/SKILL.md#stage-authorization)报告后等待用户授权进入 TRD 与计划阶段，不因产品方案完成自动进入技术设计或编码。阶段边界按既定可独立交付范围确定，不临时合并阶段绕过授权。新建或修改 DSL 时读取 [DSL 规范](../develop-work-flow/SKILL.md#dsl)，不手写 `plan.md` 的生成正文。
+对照[模板结构](../../agents/doc-reviewer/references/document-quality.md#template-structure)和[全链路逻辑审查](../../agents/doc-reviewer/references/review.md#logic-review)核对业务依据、竞调结论、R 规则与 S 场景能否互相追溯，检查异常和存量行为。将已确认的决定按[同步规则](../../agents/doc-reviewer/references/document-quality.md#decision-sync)落实到正文和场景，引用已有事实，按[存量确认](../trd-writer/references/design-decisions.md#existing-confirmation)指出技术阶段须进一步核实的影响。重大且尚未决定的业务取舍按[阶段授权规则](../develop-work-flow/references/authorization.md#stage-authorization)分轮确认。
 
-每次交接前按[全链路证据](../develop-work-flow/SKILL.md#evidence)记录到同目录 `evidence.md`；并行时按[归并规则](../develop-work-flow/SKILL.md#collaboration)只回传给指定协调记录者：记录本阶段上下文、需求与确认输入、产品规则/场景输出、实际结果及可定位来源；不把场景文字当作已执行测试。
-
-所有本次交付文档最末按[文档评审状态](../develop-work-flow/SKILL.md#document-review-status)维护“评审结论”，记录实际审查、用户确认及下一环节授权；取得答复或发生影响结论的修改后同步更新，不能沿用失效批准。生成视图只维护独立评审区，机器可读文件用末尾注释，不改变任务或场景契约。
+向用户交付本版 PRD、验收场景、实际核实的资料及仍影响设计的决定。按[证据记录](../e2e-validator/references/verification.md#evidence)与[评审结论](../../agents/doc-reviewer/references/review.md#document-review-status)记录版本、状态和用户原始答复。确认本版产品结论后，说明拟编写 TRD 的理由、位置和范围，取得明确同意后交给 [trd-writer](../trd-writer/SKILL.md)。

@@ -1,20 +1,21 @@
 # AI Coding 维护约定
 
-- 文档格式、模板结构及内容省略统一引用[文档原则](.agents/skills/develop-work-flow/SKILL.md#documentation-principle)和[模板规则](.agents/skills/develop-work-flow/SKILL.md#template-structure)；结论更新与历史文档同步引用[最新结论规则](.agents/skills/develop-work-flow/SKILL.md#decision-sync)，编写自查与评审引用[全链路逻辑审查](.agents/skills/develop-work-flow/SKILL.md#logic-review)。共用规则仅在主 SKILL 对应章节维护。
-
-- 本仓库完整的工作流执行规则与 DSL 契约统一维护于 `.agents/skills/develop-work-flow/SKILL.md`；技能执行不读取源仓库 `design-docs/`、README 等外部说明。业务项目的需求、代码、测试与证据仍作为任务输入按范围读取。
-- `design-docs/` 保留 `workflow.md` 与 `AI Coding 设计说明.md`，分别维护执行规范索引/维护说明、架构/实现边界/设计依据；不复制主 SKILL 的执行规则正文，也不把维护文档写入业务项目。
+- 每条执行规则由负责该项工作的 skill 或审查代理维护。跨职责时，调用方在需要这项能力的步骤直接链接负责方。模板随产出它的 skill 维护。
+- [工作流](.agents/skills/develop-work-flow/SKILL.md)负责选择阶段、安排交接和确认范围。[PRD](.agents/skills/prd-writer/SKILL.md)负责业务规则与验收场景。[TRD](.agents/skills/trd-writer/SKILL.md)负责概要设计、API 与数据结构设计、数据库设计和逐步计划。新增或变更的 API 由 [api-first](.agents/skills/api-first/SKILL.md#layer-contracts) 设计，按场景交付 Controller、Repository、DAO 的接口方法、所用协议类型（Param、Query、DTO）及 PO 的字段声明。TRD 确定数据读写语义、字段及表列映射，并引用同一份声明。主代理和子代理写代码前必须先读取并使用 [coder](.agents/skills/coder/SKILL.md)，严格按其适用规范和本批授权实现、测试和修正代码，[e2e-validator](.agents/skills/e2e-validator/SKILL.md)负责独立验收。
+- 文档编写与审查按负责 skill 的模板，核对格式、章节、业务逻辑及已确认决定是否同步到正文。详见[文档质量要求](.agents/agents/doc-reviewer/references/document-quality.md)与[文档审查职责](.agents/agents/doc-reviewer/AGENT.md)。
+- 执行技能时按需读取技能包内规则及目标项目的需求、代码、测试与证据。`design-docs/workflow.md` 说明维护入口，`design-docs/AI Coding 设计说明.md` 解释架构与工具边界。两者仅供维护者查阅。
 - 所有文档直接描述当前完整方案，读者无需了解先前的设计、版本对比或迁移过程。公开示例使用 `${user.home}` 等通用占位符，Shell 中使用 `${HOME}`，不包含个人用户名或机器路径。
-- 研发工作流的统一入口为 `develop-work-flow`，目录与 skill 的 name 保持一致；相关文档、模板和调用引用同步维护。
-- 自有 skills、agents、脚本和模板的唯一源是 `.agents/`。通过项目软链接访问时先解析真实路径，只定位技能包内资源和关联技能；阶段技能与审查代理的共享规则引用主 SKILL，不回源仓库查找设计文档。
+- skill 的目录与其 `name` 保持一致。改动职责或文件位置时，同步更新调用方、审查入口、相关文档和模板。
+- 新增或更新自有 skill 时，把用户会说的任务名称、常用说法和必要的技术词写进 `SKILL.md` 顶部的 `description`。把最能识别该任务的说法放在前面。仅限特定项目、运行模式或必须明确点名的 skill，在同一描述中写清触发条件。
+- 自有 skills、agents、脚本和模板的唯一源是 `.agents/`。通过项目软链接访问时先解析真实路径，只定位包内资源和关联技能，不回源仓库查找设计文档。
 - 第三方 skills 和运行依赖安装到用户家目录，不复制进本仓库。
-- 业务项目采用工作流后，默认按用户需求独立维护 `doc/req-rNN-name/`，例如 `doc/req-r01-profile/`；每个需求必须有 technical.md、plan.yaml 及生成的 plan.md、task-status.md；写作前先确认需求性质，未明确标识则主动提示并询问。明确技术需求可省 BRD/PRD，无需业务方或产品经理参与；业务需求按复杂度选择 lite/full，复杂业务需求必须完整业务文档集。技术需求省文件可使用工具lite布局，但真实复杂度和验证深度不能降低；历史批准依据保持可追溯。用户明确路径优先。本仓库自身设计文档仍在 `design-docs/`。
-- 每次新需求独立建立需求目录并重新编写本次文档，重复内容引用相关文档具体章节；不将新功能、优化或改造追加进旧需求。文档边界以主 SKILL 的 requirement-document-boundary 章节为准。以下模式切换、编号与任务承接仅限同一需求的修订和继续执行。
-- 同一需求的纯技术小迭代只更新原 TRD；产品逻辑小变更同步原 PRD，相关场景、技术设计、计划和状态按影响更新；原本按规则省略 PRD 且仍符合条件时在 TRD 维护规则。沿用原目录与布局，不因小改自动切换 full/lite；独立新需求才新建目录。业务需求扩大需改用 full 时引用原 TRD 的可复核版本，补齐必要文档，未变内容引用。TRD 编号为 TRD-<需求目录>，R/S/T 保留，详细承接见主 SKILL 的 iteration 章节。
+- 业务项目采用工作流后，默认按用户需求独立维护需求目录，命名遵循[需求目录命名规则](.agents/skills/develop-work-flow/references/deliverables.md#requirement-directory-naming)；每个需求必须有 technical.md、plan.yaml 及生成的 plan.md、task-status.md；写作前先确认需求性质，未明确标识则主动提示并询问。业务需求以 PRD 为入口并使用 full；明确的内部技术需求可使用 lite，直接进入获准的技术设计。技术需求省文件可使用工具lite布局，但真实复杂度和验证深度不能降低；历史批准依据保持可追溯。用户明确路径优先。本仓库自身设计文档仍在 `design-docs/`。
+- 每次新需求独立建立需求目录并重新编写本次文档，重复内容引用相关文档具体章节；不将新功能、优化或改造追加进旧需求。文档边界见[文档归属](.agents/skills/develop-work-flow/references/deliverables.md#requirement-document-boundary)。以下模式切换、编号与任务承接仅限同一需求的修订和继续执行。
+- 同一需求的纯技术小迭代只更新原 TRD；产品逻辑小变更同步原 PRD，相关场景、技术设计、计划和状态按影响更新；原本按规则省略 PRD 且仍符合条件时在 TRD 维护规则。沿用原目录与布局，不因小改自动切换 full/lite；独立新需求才新建目录。业务需求扩大需改用 full 时引用原 TRD 的可复核版本，补齐必要文档，未变内容引用。TRD 编号为 TRD-<需求目录>，R/S/T 保留，详细承接见[迭代承接](.agents/skills/trd-writer/references/planning.md#iteration)。
 - 未完成任务沿用编号结转，必要已完成前置及传递依赖保留并标明基线；退出本轮需记录明确的范围决定。验收打回一并阻塞所有传递依赖，旧证据标为失效，按依赖复验恢复。
 - 并行执行指定一名协调记录者更新 plan.yaml、evidence.md 和生成视图，其他执行者回传结果；Git 追溯精确匹配 Task trailer。
 - 两种模式均在需求目录持续维护 evidence.md，逐环节记录上下文、输入、输出、实际结果和可定位证据；各阶段执行者更新，e2e 验收汇总核对。缺失或未执行如实说明，不复制规则和任务状态。
-- 首次计划交付就在需求目录生成独立的 `task-status.md`，实施与验收持续刷新，只显示任务编号、名称、状态、备注四列；数据来自 plan.yaml，不手工重复维护。
-- 测试设计逐维考虑 RIGHT-BICEP，按适用性实施，并保留真实 RED/GREEN 与验收证据；详细规则以主 SKILL 的 right-bicep 章节为准。
-- AI 从需求意图识别简单或复杂，从当前代码分析新需求或老需求，不按需求名称分类。文档深度不能豁免阶段交接授权；各环节产出后先报告结论并获得进入下一环节的明确授权，极简无歧义例外、复杂方案评估及环境成组授权统一遵循主 SKILL 的 stage-authorization / environment-authorization。历史逻辑的具体代码设计要求另见 existing-confirmation；新功能同样遵守阶段门禁。
+- 首次计划交付在需求目录生成[任务状态表](.agents/skills/trd-writer/references/planning.md#task-status)，实施与验收阶段核对状态是否与本轮计划一致。
+- 测试设计逐维考虑 RIGHT-BICEP，按适用性实施，并保留真实 RED/GREEN 与验收证据；详细规则以[测试设计](.agents/skills/e2e-validator/references/verification.md#right-bicep)为准。
+- AI 从需求意图识别简单或复杂，从当前代码分析新需求或老需求，不按需求名称分类。文档深度不能豁免阶段交接授权；各环节产出后先报告结论并获得进入下一环节的明确授权，极简无歧义例外、复杂方案评估及环境成组授权统一遵循[阶段与环境授权](.agents/skills/develop-work-flow/references/authorization.md)。历史逻辑的具体代码设计要求另见[存量变更确认](.agents/skills/trd-writer/references/design-decisions.md#existing-confirmation)；新功能同样需要取得用户对实施范围的确认。
 - 维护工作流本身不意味着授权实施业务项目；业务执行以对应项目的具体授权范围为准。

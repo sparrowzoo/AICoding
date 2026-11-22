@@ -1,59 +1,59 @@
 # AI Coding 设计说明
 
-本文面向 AICoding 的维护者，说明架构、实现边界与设计依据。完整执行契约由 [develop-work-flow/SKILL.md](../.agents/skills/develop-work-flow/SKILL.md)独立提供；执行工作流不读取本文。[工作流维护说明](workflow.md)提供文件职责与维护导航，不维护第二份执行规范。
+AICoding 用一个流程入口协调多个专业 skill。本文解释这样分工的原因、脚本负责哪些工作，以及项目如何使用这套源码。[工作流入口](../.agents/skills/develop-work-flow/SKILL.md)供项目执行时使用，[维护说明](workflow.md)按职责列出修改位置。
 
 章节导航：[架构](#architecture) · [DSL 与工具](#dsl) · [接入职责](#onboarding) · [设计依据](#decisions)
 
 <a id="architecture"></a>
 ## 1. 架构
 
-工作流以技能包内的文件契约连接各阶段。主 SKILL 内置公共执行规则，阶段技能提供各自职责，审查代理返回独立发现；模板提供起稿结构，脚本完成确定性的结构校验和文档生成。实际业务实施与测试使用宿主和项目已有工具，不绑定模型或第三方编排接口。
+工作流负责选择阶段、安排交接及确认下一步授权。PRD 定义业务行为和验收场景。TRD 负责系统方案、模块职责、API 和数据结构设计、数据库设计及逐步实施计划。新增或变更的 API 交给 [api-first](../.agents/skills/api-first/SKILL.md#layer-contracts) 设计，由它按场景定义 Controller、Repository、DAO 的方法签名、协议类型（Param、Query、DTO 等）及 PO 数据声明，按[接口交付规则](../.agents/skills/api-first/SKILL.md#design-source-delivery)交付可审阅的源码或拟应用的差异。TRD 确定 DAO 的读写语义、PO 字段及表列映射，引用同一份声明。用户可以结合这些定义审阅计划中各步的业务目的和前后依赖。
 
-自有 skills、agents、模板和脚本的唯一源是 `.agents/`。业务项目通过软链接复用它，读取执行规则时不需要访问源仓库的其他目录。关联技能和代理只向主 SKILL 引用公共规则，避免间接引回设计说明。
+用户批准对应版本和实施批次后，coder 实现业务、联调和测试。文档与代码审查者可沿各阶段的产物核对设计和实际行为。独立验收依据已确认的场景及实际运行证据判断是否通过。
 
-业务事实归目标项目，需求目录按迭代持续维护。主 SKILL 定义运行规则，`design-docs/` 保留维护视角与设计依据；两者职责独立，执行规范不在两处重复维护。
+每条执行规则与相关模板放在负责这项工作的 skill 或审查代理目录，调用方在具体步骤链接过去。业务项目通过软链接复用 `.agents/` 源码，使用自己已有的开发与测试工具。业务事实及批准记录留在目标项目的需求目录中。
 
 <a id="dsl"></a>
 ## 2. DSL 与工具边界
 
-Gherkin 表达可观察的验收行为，YAML 表达任务及其依赖、引用和证据摘要，Markdown 提供设计正文与团队阅读视图。DSL 的字段、mode、编号、锚点、路径和完成条件统一见 [SKILL 中的 DSL 契约](../.agents/skills/develop-work-flow/SKILL.md#dsl)。
+Gherkin 表达可观察的验收行为，YAML 表达任务及其依赖、引用和证据摘要，Markdown 提供设计正文与团队阅读视图。DSL 的字段、mode、编号、锚点、路径和完成条件由 TRD 维护，见[任务计划格式](../.agents/skills/trd-writer/references/planning.md#dsl)。
 
-工具负责读取与校验这些结构、生成确定性的计划和状态视图。它不执行计划中的命令，不推断用户是否确认了历史功能的具体代码设计，也不自动证明业务行为、证据完整性或测试结果；这些判断由执行者和审查者依照主 SKILL 完成。
+工具负责读取与校验这些结构、生成确定性的计划和状态视图。它不执行计划中的命令，不推断用户是否确认了历史功能的具体代码设计，也不自动证明业务行为、证据完整性或测试结果；这些判断由相应阶段的执行者和审查者依据实际证据作出。
 
 维护时核对以下实现对应关系：
 
 | 实现对象 | 契约入口 |
 | --- | --- |
-| 需求文档与 lite/full 模板 | [文档职责](../.agents/skills/develop-work-flow/SKILL.md#documents) |
-| YAML/Gherkin 解析、引用与状态检查 | [DSL 契约](../.agents/skills/develop-work-flow/SKILL.md#dsl) |
-| 计划与四列状态生成 | [脚本入口](../.agents/skills/develop-work-flow/SKILL.md#script-entry)与[验收状态](../.agents/skills/develop-work-flow/SKILL.md#task-status) |
-| 人工/AI 的语义、确认与证据核对 | [代码设计确认](../.agents/skills/develop-work-flow/SKILL.md#existing-confirmation)与[全链路证据](../.agents/skills/develop-work-flow/SKILL.md#evidence) |
+| 需求文档与 lite/full 模板 | [文档职责](../.agents/skills/develop-work-flow/references/deliverables.md#documents) |
+| YAML/Gherkin 解析、引用与状态检查 | [DSL 契约](../.agents/skills/trd-writer/references/planning.md#dsl) |
+| 阅读计划与任务状态生成 | [计划工具用法](../.agents/skills/trd-writer/references/planning.md#script-entry)与[验收状态](../.agents/skills/trd-writer/references/planning.md#task-status) |
+| 人工/AI 的语义、确认与证据核对 | [代码设计确认](../.agents/skills/trd-writer/references/design-decisions.md#existing-confirmation)与[全链路证据](../.agents/skills/e2e-validator/references/verification.md#evidence) |
 
 <a id="onboarding"></a>
 ## 3. 接入职责
 
-目录软链接分发同一份自有源码，用户级安装管理第三方 skills 与运行依赖。依赖清单和锁文件随源码维护，安装结果留在用户家目录；业务项目保持自身依赖与测试环境。具体接入步骤和安装时机完整内置于 [SKILL 接入前提](../.agents/skills/develop-work-flow/SKILL.md#onboarding)与[脚本入口](../.agents/skills/develop-work-flow/SKILL.md#script-entry)。
+用户级 skills 入口和项目已有的目录软链接都指向同一份自有源码。第三方 skills 与运行依赖也在用户家目录管理。依赖清单和锁文件随源码维护，安装结果留在用户家目录；业务项目保持自身依赖与测试环境。首次接入和依赖安装方式见[仓库首页](../readme.md#onboarding)。
 
 源仓库维护自己的本地工具设置，业务项目维护自己的代码与文档。软链接只解决内容复用，不自动赋予业务实施、提交或发布授权。
 
 <a id="decisions"></a>
 ## 4. 设计依据
 
-方案服务于两个目标：让团队对需求、行为与接口形成可审阅共识，让 AI 按明确任务实施并提供可复核结果。
+团队需要能看懂并审阅需求和接口，也需要从任务追溯到实际代码与验证结果。
 
 | 选择 | 依据与边界 |
 |---|---|
-| 按复杂度选择文档深度 | 简单需求用两份设计与计划源集中表达，复杂需求按需求、产品、技术分工；风险通过明确影响与措施处理，不强制增加文档。 |
+| 按需求性质选择文档布局 | 新业务需求使用 full，由 PRD 与 TRD 分别承担产品和技术说明。内部技术需求可使用 lite。风险和复杂度决定需要展开到什么程度。 |
 | Markdown 表达问题、规则和设计 | 团队与 AI 都能直接阅读、评审和修改；每类事实只有一个权威位置，通过稳定编号与链接建立关系。 |
 | Gherkin 表达验收行为，YAML 表达实施任务 | 场景明确输入、行为与结果，任务明确依赖、范围和验证入口；场景绑定真实测试，AI 按任务调用实施工具，不把文件解析成功视为业务通过。 |
-| 从 DSL 生成计划和任务状态视图 | 同一任务数据同时服务 AI 执行与团队阅读，避免手工维护时出现状态分歧；最终状态表固定四列，详细证据留在任务证据及测试报告中。 |
+| 从 DSL 生成计划和任务状态视图 | 同一任务数据同时服务 AI 执行与团队阅读，避免手工维护时出现状态分歧；详细证据留在任务证据及测试报告中。 |
 | 全链路证据集中索引 | evidence.md 连接每环节的上下文、输入、输出、实际结果和证据；各阶段维护、e2e 汇总核对，未执行和未验证如实显示。 |
-| 按本轮复杂度承接原文档 | 大需求小迭代只写 TRD 本轮变化并引用原需求；小需求扩大则引用原 TRD 编号及版本，重新形成全文档；保留稳定编号，避免无据覆盖或多处当前事实。 |
+| 同一需求迭代沿用原文档 | 产品行为变化时更新 PRD，技术变化在 TRD 说明。lite 扩为 full 时，引用原 TRD 的编号及可核对的版本，并保留已有编号。 |
 | 文档按需求持续维护，Git 保留版本 | 每项需求有稳定目录，目标、设计、场景、任务与提交可连续追溯；迭代直接更新所属文档，无需复制整套资料。 |
 | 独立判断存量影响，确认具体变化 | 技术事实由 AI 调查，业务意图由用户确定；存量改动通过具体证据与分轮确认形成共识，新逻辑在明确且获授权后推进，避免重复确认与整轮返工。 |
 | RIGHT-BICEP 配合真实 RED/GREEN 和审查 | 用例选择覆盖正确性、边界及适用风险；验证结果必须来自实际执行，不能以流程步骤齐全代替质量判断。 |
 | 通过目录软链接复用唯一源 | 各项目共享同一份自有 skills、模板和脚本，源码与设计文档在 AICoding 统一维护；业务事实归对应项目，第三方依赖由用户级安装管理。 |
-| 执行规范内置于主 SKILL | 技能包具备完整执行契约，阶段技能与审查代理不依赖源仓库设计文档；维护说明只保留架构与依据，避免两套规则漂移。 |
+| 按交付职责维护规则 | api-first 负责各层接口与数据声明，TRD 引用这些定义说明模块如何协作，并确定存储侧的数据结构与读写语义。coder 依据获批的设计实现行为。 |
 | 历史功能逻辑先确认具体代码设计 | 文档模式只决定材料组织，不能替代用户对代码改法的判断；即使一般实施已授权，历史逻辑仍按明确确认的方案实施。 |
 
-执行规则发生变化时，在主 SKILL 修改其唯一正文，并核对关联技能、模板和脚本；设计说明记录相关依据，不承载只有阅读本文才能知道的执行要求。
+执行规则变化时，修改负责方目录中的正文，并核对调用方、模板和确实受影响的脚本。设计说明记录分工的理由。
