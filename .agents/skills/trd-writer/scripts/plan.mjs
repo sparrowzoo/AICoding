@@ -29,7 +29,7 @@ check 严格检查生成正文和评审区结构，不认证审查或用户授�
 生成文件均拒绝覆盖无对应生成标记的手写文件。以目录 req-r01-profile-git-user 为例：
 node plan.mjs status --project . --feature req-r01-profile-git-user
 工具不执行 DSL 中的任何命令，不证明业务语义、测试结果或证据真实性。
-默认依赖目录为 ~/.local/share/ai-coding-workflow/。${dependencyGuide}
+依赖随 trd-writer 安装。${dependencyGuide}
 测试可设置 AI_CODING_WORKFLOW_DEPS=<绝对依赖目录>。需要 Node.js 22+。
 `;
 function fail(code, message) { const error = new Error(message); error.code = code; throw error; }
@@ -50,7 +50,11 @@ function placeholders(content, name) {
   if (/REPLACE_[A-Z0-9_]+|<实际[^>\n]*>|\bTBD\b/.test(content)) fail('PLACEHOLDER', `${name} 含未替换占位符。`);
 }
 function dependencies() {
-  const base = process.env.AI_CODING_WORKFLOW_DEPS || path.join(os.homedir(), '.local/share/ai-coding-workflow');
+  const invokedFrom = path.dirname(path.resolve(process.argv[1]));
+  const codexHome = process.env.CODEX_HOME || path.join(os.homedir(), '.codex');
+  const installedScripts = path.resolve(codexHome, 'skills', 'trd-writer', 'scripts');
+  const base = process.env.AI_CODING_WORKFLOW_DEPS
+    || (fs.existsSync(path.join(invokedFrom, 'node_modules')) ? invokedFrom : installedScripts);
   if (!path.isAbsolute(base)) fail('DEPENDENCIES_MISSING', `AI_CODING_WORKFLOW_DEPS 必须为绝对目录。${dependencyGuide}`);
   try {
     const require = createRequire(path.join(base, 'package.json'));

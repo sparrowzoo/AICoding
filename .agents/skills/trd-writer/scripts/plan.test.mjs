@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 const cli = fileURLToPath(new URL('./plan.mjs', import.meta.url));
+const installer = fileURLToPath(new URL('./install.mjs', import.meta.url));
 const yaml = `schema: 1
 feature: cart-total
 iteration: basket-1
@@ -264,6 +265,58 @@ test('lite preserves completion evidence and source/output path protection', t =
   fs.symlinkSync(outside, path.join(h.doc, 'plan.md'));
   fails(h.run('render'), 'UNSAFE_PATH');
   assert.equal(fs.existsSync(outside), false);
+});
+
+test('one command installs a fresh user and upgrades an existing skill link', t => {
+  const f = liteFixture(t);
+  f.edit('plan.yaml', s => s.replace('iteration: basket-1', 'iteration: basket-1\nunderstanding: 计算并展示购物车金额。')
+    .replace('    requirements: [R01]', '    handoff: 计算金额交给展示任务。\n    requirements: [R01]')
+    .replace('    requirements: [R02]', '    handoff: 展示金额供用户确认。\n    requirements: [R02]')
+    .replace(/(  - id: T02[\s\S]*?)(  - id: T01[\s\S]*)/, '$2$1'));
+
+  const skillSource = path.resolve(path.dirname(cli), '..');
+  for (const existingLink of [false, true]) {
+    const home = path.join(f.root, existingLink ? 'existing user' : 'fresh user');
+    const codex = path.join(home, '.codex');
+    const skills = path.join(codex, 'skills');
+    const installed = path.join(skills, 'trd-writer');
+    const legacyDependencies = path.join(home, '.local', 'share', 'ai-coding-workflow');
+    const env = {
+      ...process.env,
+      HOME: home,
+      CODEX_HOME: codex,
+      npm_config_cache: process.env.npm_config_cache || path.join(f.root, 'npm-cache'),
+      npm_config_fetch_retries: '0',
+    };
+    delete env.AI_CODING_WORKFLOW_DEPS;
+
+    fs.mkdirSync(skills, { recursive: true });
+    if (existingLink) {
+      fs.symlinkSync(skillSource, installed);
+      fs.mkdirSync(legacyDependencies, { recursive: true });
+      fs.writeFileSync(path.join(legacyDependencies, 'old-install'), 'keep until verified');
+    }
+
+    ok(spawnSync(process.execPath, [installer], { encoding: 'utf8', env }));
+    assert.equal(fs.lstatSync(installed).isDirectory(), true);
+    const entry = path.join(installed, 'SKILL.md');
+    assert.equal(fs.lstatSync(entry).isFile(), true);
+    assert.match(fs.readFileSync(entry, 'utf8'), /^---\nname: trd-writer\n[\s\S]*\]\(source\.md\)/);
+    assert.equal(fs.realpathSync(path.join(installed, 'source.md')), fs.realpathSync(path.join(skillSource, 'SKILL.md')));
+    assert.equal(fs.existsSync(path.join(installed, 'source', 'SKILL.md')), false);
+    assert.ok(fs.existsSync(path.join(skills, 'develop-work-flow', 'SKILL.md')));
+    assert.equal(fs.existsSync(path.join(legacyDependencies, 'old-install')), existingLink);
+
+    if (existingLink) {
+      const installedInstaller = path.join(installed, 'scripts', 'install.mjs');
+      ok(spawnSync(process.execPath, [installedInstaller], { encoding: 'utf8', env }));
+    }
+    const installedCli = path.join(installed, 'scripts', 'plan.mjs');
+    for (const args of [['validate'], ['render'], ['status'], ['check', '--final']]) {
+      ok(spawnSync(process.execPath, [installedCli, ...args, '--project', f.root, '--feature', 'cart-total'], { encoding: 'utf8', env }));
+    }
+    ok(spawnSync(process.execPath, [cli, 'validate', '--project', f.root, '--feature', 'cart-total'], { encoding: 'utf8', env }));
+  }
 });
 
 test('help points to README installation instructions without loading dependencies', () => {

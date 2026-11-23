@@ -10,7 +10,7 @@
 <a id="script-entry"></a>
 ## 校验计划与生成状态表
 
-在目标项目根目录运行 [plan.mjs](../scripts/plan.mjs)，`--feature` 填 `doc/` 下实际的需求目录名。下面的示例使用 Codex 用户级入口，其他工具从已加载的 `trd-writer` 目录定位同一个脚本。
+在目标项目根目录运行 [plan.mjs](../scripts/plan.mjs)，`--feature` 填 `doc/` 下实际的需求目录名。依赖由 [trd-writer 安装脚本](../scripts/install.mjs) 一并安装。下面的示例使用 Codex 用户级入口，其他工具从各自用户级 skills 目录下的 `trd-writer/scripts` 调用。
 
 ```sh
 plan_scripts="${CODEX_HOME:-${HOME}/.codex}/skills/trd-writer/scripts"

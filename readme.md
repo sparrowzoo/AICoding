@@ -7,26 +7,15 @@ AI Coding 是一套供团队与 AI 协作开发的 skills。你可以用它从�
 <a id="onboarding"></a>
 ## 接入业务项目
 
-**1. 安装核心 skills。** 在 AICoding 仓库根目录用 Bash 或 Zsh 运行下面的命令，将六个核心 skill 链接到 Codex 的用户级目录。已有正确链接时可跳过，其他工具使用各自的用户级 skills 目录。
+**1. 安装核心 skills。** 准备好 Node.js 22+ 和 npm，在 AICoding 仓库根目录运行下面的命令。它会在 Codex 的用户级 skills 目录装好六个核心 skill，并按锁文件安装计划工具的依赖。首次安装和升级使用同一条命令。
 
 ```bash
-skills_source="$(pwd -P)/.agents/skills"
-skills_target="${CODEX_HOME:-${HOME}/.codex}/skills"
-mkdir -p "$skills_target"
-ln -s "$skills_source"/{develop-work-flow,prd-writer,trd-writer,api-first,coder,e2e-validator} "$skills_target/"
+node .agents/skills/trd-writer/scripts/install.mjs
 ```
 
-**2. 准备计划工具。** 使用 `plan.mjs` 需要 Node.js 22+ 和 npm。在 AICoding 仓库根目录按锁文件安装依赖，同一用户的业务项目可以共用。已有可用依赖时直接复用。需要更新或修复时，先把旧依赖目录改名留存，再运行下面的命令。
+首次安装会从 npm 下载依赖。依赖随 `trd-writer` 安装，本机多个项目可以共用。使用其他工具时，通过 `--skills-dir` 指定该工具的用户级 skills 目录。
 
-```bash
-plan_deps="${HOME}/.local/share/ai-coding-workflow"
-mkdir -p "${HOME}/.local/share"
-mkdir "$plan_deps" &&
-  cp .agents/skills/trd-writer/scripts/package{,-lock}.json "$plan_deps/" &&
-  (cd -P "$plan_deps" && npm ci --ignore-scripts --no-audit)
-```
-
-**3. 在目标业务项目开新会话。** 确认 Codex 找得到 `develop-work-flow`，直接说清要做的事和本轮范围。例如：
+**2. 在目标业务项目开新会话。** 确认 Codex 找得到 `develop-work-flow`，直接说清要做的事和本轮范围。
 
 > 使用 develop-work-flow，为当前项目规划用户资料编辑功能。先确认业务规则和验收场景，本轮做到产品需求为止。
 
@@ -94,7 +83,7 @@ mkdir "$plan_deps" &&
 
 `.agents/` 是自有 skills、审查代理、模板和脚本的唯一源码。修改规则时，从负责该项工作的 skill 或审查代理入手，核对它的模板和调用方。通过软链接使用时，从 skill 的真实路径定位配套文件。第三方 skills，例如分轮确认用的 `grilling`，安装在工具的用户级 skills 目录。
 
-修改计划工具后，在 AICoding 仓库根目录用已安装的依赖运行测试：
+安装核心 skills 后，在 AICoding 仓库根目录运行计划工具测试。
 
 ```sh
 node --test .agents/skills/trd-writer/scripts/plan.test.mjs
