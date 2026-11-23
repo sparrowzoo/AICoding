@@ -1,0 +1,4 @@
+interface:
+  display_name: "Java 生成 React 表单"
+  short_description: "根据指定 Java 类生成 React 新增编辑组件和 TypeScript 类"
+  default_prompt: "使用 $java-react-form，先问我要根据哪个 Java 类生成，再确认字段映射并生成新增／编辑组件及 TypeScript 类。"
